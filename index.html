@@ -1281,5 +1281,21 @@ render(true);
  render(true);
 })();
 </script>
+<style>
+/* round 5d: give every icon an explicit size. iPhone Safari draws an svg with no size as nothing. */
+:where(button>svg:not([width])){width:22px;height:22px;flex:none}
+:where(span[style*="width:"]>svg:not([width])){display:block;width:100%;height:auto}
+.back svg{width:24px;height:24px;flex:none}
+.x svg{width:20px;height:20px;flex:none}
+</style>
+<style>
+/* round 5d: give every icon an explicit size. Safari shrinks an unsized SVG inside a flex box to nothing (empty back button on iPhone). */
+.back svg{width:24px;height:24px;flex:none;display:block}
+.x svg{width:20px;height:20px;flex:none;display:block}
+.ic svg,.tab svg,.linkbtn svg,.mk3 svg{flex:none}
+:where(span)>svg:not([width]){display:block;width:100%;height:auto;flex:none}
+:where(button,a)>svg:not([width]){flex:none}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+</style>
 
 </html>
