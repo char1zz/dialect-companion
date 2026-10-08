@@ -1,0 +1,1281 @@
+<title>Dialect Companion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Noto+Sans+HK:wght@400;500;700&display=swap">
+<style>
+/* Layout: one app shell that reflows by its own width (container queries) — phone: bottom bar; tablet: side rail; laptop: sidebar + context panel.
+   Single light theme by choice: a ward app used under bright clinical lighting. */
+:root{
+  --teal:#105a5c; --teal-2:#0c4648; --teal-soft:#e4efee; --teal-line:#cfdcdb;
+  --orange:#b4531f; --brown:#7a3512; --cream:#fff5e6; --cream-line:#efd9bb; --peach:#fde9dc;
+  --ink:#1a2423; --muted:#5d6a68; --faint:#8a9694; --line:#e2e7e6; --bg:#f2f4f3; --card:#ffffff;
+  --good:#1f6b3a; --good-soft:#eaf4ec; --bad:#a6332a; --bad-soft:#fbeceb; --amber:#8a5a00;
+  --t1:#1f6fb8; --t2:#2e8a4b; --t3:#7d55b8; --t4:#c23c2a; --t5:#a87a07; --t6:#56687a;
+  --stage:#dde3e2;
+  --f-ui:"Figtree", "Segoe UI", system-ui, sans-serif;
+  --f-zh:"Noto Sans HK", "Noto Sans CJK HK", "PingFang HK", "Microsoft JhengHei", sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--stage);color:var(--ink);font-family:var(--f-ui);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #f0b37e;outline-offset:2px}
+.zh{font-family:var(--f-zh)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- preview stage ---------- */
+.toolbar{display:none}
+body.staged .toolbar{display:flex;align-items:center;justify-content:center;gap:14px;padding:12px 16px;flex-wrap:wrap}
+.toolbar .lbl{font-size:13px;color:var(--muted);font-weight:600}
+.seg{display:flex;background:#fff;border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px}
+.seg button{padding:7px 14px;border-radius:9px;font-size:14px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:6px}
+.seg button[aria-pressed="true"]{background:var(--teal);color:#fff}
+.stage{position:relative}
+body.staged .stage{display:flex;justify-content:center;padding:4px 16px 24px}
+.device{position:relative;background:var(--bg);overflow:hidden;width:100%;height:100vh;height:100dvh}
+body.staged .device{border-radius:28px;box-shadow:0 0 0 10px #1b1f1f,0 18px 50px rgba(0,0,0,.25);transform-origin:top center;flex:none}
+body.staged .device.phone{border-radius:52px;box-shadow:0 0 0 11px #1b1f1f,0 18px 50px rgba(0,0,0,.25)}
+.island{display:none}
+body.staged .device.phone .island{display:block;position:absolute;top:11px;left:50%;transform:translateX(-50%);width:124px;height:36px;border-radius:20px;background:#0b0d0d;z-index:50}
+.app{container-type:inline-size;height:100%;width:100%;--tg:calc(env(safe-area-inset-top,0px) + 12px)}
+body.staged .phone .app{--tg:52px}
+
+/* ---------- shell ---------- */
+.shell{display:flex;flex-direction:column;height:100%}
+.main{flex:1;display:flex;min-height:0}
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden;min-width:0;-webkit-overflow-scrolling:touch}
+.col{max-width:560px;margin:0 auto;padding:0 16px 28px}
+.side,.ctx{display:none}
+.tabbar{display:flex;justify-content:space-around;background:#fff;border-top:1px solid var(--line);padding:8px 4px calc(8px + env(safe-area-inset-bottom,0px));flex:none}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;color:var(--faint);min-width:62px;padding:4px 0}
+.tab svg{width:26px;height:26px}
+.tab[aria-current="page"]{color:var(--teal);font-weight:700}
+
+/* top spacing for the island on phones */
+.topgap{height:var(--tg)}
+
+/* sub-screen header */
+.bar{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:calc(var(--tg) + 4px) 16px 14px;margin:0 -16px 16px}
+.back{width:44px;height:44px;border-radius:22px;background:#eef1f0;display:flex;align-items:center;justify-content:center;flex:none}
+.bar h1{font-size:22px;font-weight:800;margin:0;line-height:1.15;text-wrap:balance}
+.bar p{margin:2px 0 0;font-size:14px;color:var(--muted)}
+
+/* generic */
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
+.card.hl{border:2px solid var(--teal)}
+.stack{display:flex;flex-direction:column;gap:12px}
+.eyebrow{font-size:12.5px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted);margin:0}
+.eyebrow.or{color:var(--orange)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:54px;border-radius:16px;font-size:18px;font-weight:700;width:100%}
+.btn.pri{background:var(--teal);color:#fff}
+.btn.sec{border:1.5px solid var(--teal);color:var(--teal);background:#fff}
+.btn.warm{background:var(--brown);color:#fff}
+.pill{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px;border-radius:20px;border:1.5px solid var(--teal-line);font-size:15px;font-weight:600;color:var(--teal);background:#fff}
+.pill.solid{background:var(--teal);border-color:var(--teal);color:#fff}
+.tag{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:8px;font-size:14px;font-weight:600;background:#f5ddb5;color:#4d2b0a}
+.tag.ta{background:#ebe4f6;color:#4b3378}
+.muted{color:var(--muted)}
+.sm{font-size:13px}
+.legend-row{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px}
+.lg{display:flex;align-items:center;gap:5px;font-size:13.5px;font-weight:600}
+.lgline{font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.linkbtn{color:var(--teal);font-weight:700;font-size:13px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}.linkbtn svg{width:16px;height:16px}
+
+/* phrases */
+.phr{display:flex;flex-wrap:wrap;gap:6px 9px;align-items:flex-end}
+.syl{display:flex;flex-direction:column;align-items:stretch;min-width:30px}
+.syl svg{display:block;width:100%;height:22px;margin-bottom:3px}
+.syl b{font-size:24px;font-weight:800;color:var(--teal);line-height:1.1}
+.syl.tr b{color:var(--orange)}
+.phr.on-dark .syl b{color:#fff}
+.phr.on-dark .syl.tr b{color:#f3cf9c}
+.phr.sm .syl b{font-size:20px}
+.gloss{font-size:14.5px;color:var(--muted);margin-top:6px;line-height:1.45}
+.dark .gloss .en{color:#d9ece9}
+.gloss .zh{color:#3f4a48}
+
+/* home */
+.hero{background:var(--teal);color:#fff;margin:0 -16px;padding:0 16px 22px}
+.hero .who{display:flex;justify-content:space-between;align-items:flex-start;padding-top:8px}
+.hero small{font-size:13px;letter-spacing:1.4px;font-weight:700;opacity:.85}
+.hero h1{font-size:27px;font-weight:800;margin:8px 0 6px;line-height:1.1}
+.hero p{margin:0;font-size:16px;opacity:.92}
+.hero p b{color:#f3d9a6}
+.av{width:52px;height:52px;border-radius:26px;background:#f5d9a8;color:#5a3608;font-weight:800;font-size:19px;display:flex;align-items:center;justify-content:center;flex:none}
+.search{display:flex;align-items:center;gap:10px;height:48px;border-radius:14px;background:#fff;border:1.5px solid var(--teal-line);padding:0 14px}
+.search input{border:0;outline:0;font:inherit;font-size:16px;flex:1;min-width:0;background:transparent;color:var(--ink)}
+.hero .search{margin-top:16px;border-color:transparent}
+.cov{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.cov>*{border-radius:12px;padding:9px 12px;background:#e6f1e9}
+.cov b{display:block;color:var(--good);font-size:16px}
+.cov span{font-size:13.5px;color:var(--muted)}
+.cov .oc{background:#fdf0e1}.cov .oc b{color:var(--brown)}
+.remind{display:flex;gap:14px;align-items:center;background:var(--cream);border:1px solid var(--cream-line);border-radius:18px;padding:16px}
+.remind b{color:var(--brown);font-size:18px;display:block}
+.prow{display:flex;align-items:center;gap:14px;text-align:left;width:100%}
+.bed{width:58px;height:58px;border-radius:14px;background:var(--teal-soft);color:var(--teal);font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;flex:none;font-variant-numeric:tabular-nums}
+.prow h3{margin:0 0 6px;font-size:19px;font-weight:700}
+.plist{display:grid;gap:12px}
+.plist button.card{transition:border-color .12s}
+.plist button.card:active{border:2px solid var(--teal);padding:15px}
+.card.hl{padding:15px}
+.sechead{display:flex;justify-content:space-between;align-items:baseline;margin:22px 0 10px}
+.sechead h2{margin:0;font-size:21px;font-weight:800}
+
+/* patient */
+.phero{background:var(--teal);color:#fff;margin:0 -16px 16px;padding:0 16px 20px}
+.phero .back{background:rgba(255,255,255,.14)}
+..hero h1{font-size:27px;margin:12px 0 10px;line-height:1.1}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{height:34px;padding:0 14px;border-radius:17px;display:inline-flex;align-items:center;font-size:15px;font-weight:600;background:rgba(255,255,255,.14)}
+.chip.k{background:#f5d9a8;color:#4d2b0a}
+.notes-box{background:var(--cream);border:1px solid var(--cream-line);border-radius:18px;padding:16px}
+.notes-box p{margin:8px 0 0;font-size:16px;line-height:1.5;color:#3e3125}
+.notes-box .by{font-size:12px;color:var(--faint);margin-top:10px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px;text-align:left;min-height:104px}
+.tile b{font-size:17px;font-weight:700}
+.tile.warm{background:#fbf0ea;border-color:#f3dccd}
+.tile.warm b{color:var(--brown)}
+
+/* body parts / scale / choices */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.choice{border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}
+.choice .zh{font-size:19px;font-weight:700}
+.choice span{font-size:13px;color:var(--muted)}
+.choice[aria-pressed="true"]{background:var(--peach);border:2px solid var(--orange)}
+.choice[aria-pressed="true"] .zh,.choice[aria-pressed="true"] span{color:var(--brown)}
+.scale{display:grid;grid-template-columns:repeat(10,1fr);gap:5px}
+.scale button{height:48px;border-radius:12px;border:1.5px solid var(--line);font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.scale button[aria-pressed="true"]{background:var(--peach);border:2px solid var(--orange);color:var(--brown)}
+.scale-ends{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:6px}
+textarea.note{width:100%;min-height:70px;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;font-size:15px;resize:vertical;color:var(--ink);background:#fff}
+label.fl{font-size:13px;font-weight:700;color:var(--muted);display:block;margin:12px 0 6px}
+
+/* practise rows */
+.prow2{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.ic{width:46px;height:46px;border-radius:23px;border:1.5px solid var(--teal-line);display:flex;align-items:center;justify-content:center;flex:none;background:#fff}
+.ic svg{width:21px;height:21px}
+.card.focus{border:2px solid var(--orange);background:#fff9f4}
+.mic{width:96px;height:96px;border-radius:48px;background:var(--orange);display:flex;align-items:center;justify-content:center;margin:0 auto}
+.tipbox{background:var(--cream);border:1px solid var(--cream-line);border-radius:18px;padding:16px}
+.tipbox p{margin:8px 0 0;font-size:16px;line-height:1.5}
+
+/* show (patient-facing) */
+.big{display:flex;align-items:center;gap:20px;background:var(--peach);border-radius:26px;padding:20px 22px;color:var(--brown)}
+.bigl{width:52px;height:52px;border-radius:26px;display:flex;align-items:center;justify-content:center;flex:none;background:#fff;color:#98a3a1}
+.bigl.yes{background:var(--good);color:#fff}
+.rxt{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.4px}
+.big .zh{font-size:40px;white-space:nowrap}
+.rxhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin:14px 0 8px}
+.rx{border-radius:14px;padding:12px 6px 10px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;background:var(--peach);color:var(--brown)}
+.rx .zh{font-size:19px;font-weight:700}
+.rx>span:not(.zh):not(.rxl){font-size:13px}
+.rx.no{background:#f1f3f3;color:#8a9694}
+.rxl{display:inline-flex;align-items:center;gap:3px;margin-top:5px;height:22px;padding:0 8px;border-radius:11px;font-size:12px;font-weight:700;background:#fff;color:#7d8987}
+.rxl.yes{background:var(--good);color:#fff}
+.big .zh{font-size:46px;font-weight:700;line-height:1.1}
+.big span{font-size:16px;font-weight:600}
+.big.off{background:#f1f3f3;color:#98a3a1}
+
+/* teach-back */
+.dark{background:var(--teal);color:#fff;border-radius:20px;padding:18px}
+.dark .eyebrow{color:#bfe0dc}
+.dark .gloss{color:#d9ece9}.dark .gloss .zh{color:#fff}
+.pick{border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;position:relative}
+.pick .zh{font-size:19px;font-weight:700;color:#6c7876}
+.pick span{font-size:13px;color:var(--muted)}
+.pick svg.i{width:26px;height:26px;color:#6c7876}
+.pick.ok{background:var(--good-soft);border:2px solid var(--good)}.pick.ok .zh,.pick.ok svg.i{color:var(--good)}
+.pick.no{background:var(--bad-soft);border:2px solid var(--bad)}.pick.no .zh,.pick.no svg.i,.pick.no span{color:var(--bad)}
+.pick .mk{position:absolute;top:6px;right:8px;width:16px;height:16px}
+.res{border-radius:18px;padding:16px;border:1px solid}
+.res h3{margin:0 0 6px;font-size:19px}
+.res p{margin:0;font-size:15.5px;line-height:1.5}
+.res.good{background:var(--good-soft);border-color:#c6e0cc}.res.good h3{color:var(--good)}
+.res.part{background:var(--cream);border-color:var(--cream-line)}.res.part h3{color:var(--brown)}
+.res.bad{background:var(--bad-soft);border-color:#efc9c5}.res.bad h3{color:var(--bad)}
+.inner{background:#fff;border-radius:14px;padding:12px 14px;margin-top:12px}
+.marks{font-size:14px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.marks button{color:var(--teal);text-decoration:underline;text-underline-offset:3px;font-weight:600}
+.dashed{border:1.5px dashed #d79a6e;border-radius:18px;padding:16px;background:#fff}
+.dashed h3{margin:0 0 12px;color:var(--brown);font-size:19px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.saved{border:1.5px solid #9ccaa8;background:var(--good-soft);border-radius:18px;padding:16px}
+
+/* help */
+.person{display:flex;gap:14px;align-items:flex-start}
+.person .av{width:56px;height:56px;font-size:18px}
+.person .av.c{background:var(--teal-soft);color:var(--teal-2)}
+.person h3{margin:0;font-size:19px}
+.person .r{font-size:14.5px;color:var(--muted)}
+.ok-t{color:var(--good);font-weight:600;font-size:14.5px}
+.warn-t{color:#9a4b0c;font-weight:600;font-size:14.5px}
+.tipcard{background:#fff;border-radius:12px;padding:12px 14px}
+.tipcard small{display:block;color:var(--faint);font-size:12.5px;margin-top:2px}
+
+/* done */
+.donehero{background:var(--good);color:#fff;margin:0 -16px 16px;padding:0 16px 20px}
+.don.hero h1{font-size:27px;margin:6px 0 6px}
+.check-li{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+.check-li:last-child{border:0}
+.check-li b{font-size:17.5px}
+.check-li div div{font-size:14px;color:var(--muted);margin-top:3px}
+
+/* review */
+.opt{display:flex;gap:12px;align-items:center;border:1.5px solid var(--line);border-radius:14px;padding:11px 14px;text-align:left;width:100%;background:#fff}
+.opt b{font-size:16px;display:block}
+.opt span{font-size:13.5px;color:var(--muted)}
+.opt[aria-pressed="true"]{border:2px solid var(--teal);background:var(--teal-soft)}
+
+/* notes */
+.fchips{display:flex;gap:8px;flex-wrap:wrap}
+.fchip{height:38px;padding:0 15px;border-radius:19px;border:1.5px solid var(--line);font-size:14.5px;font-weight:600;background:#fff}
+.fchip[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:#fff}
+.ncard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px}
+.ncard.prac{border:1.5px solid #e9cbb0}
+.nnote{margin-top:10px;background:var(--cream);border-radius:10px;padding:8px 11px;font-size:14px;line-height:1.4;color:#4c3c2d}
+.nnote b{color:var(--brown)}
+.nmeta{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.mini{height:32px;padding:0 12px;border-radius:16px;border:1.5px solid var(--teal-line);display:inline-flex;align-items:center;gap:5px;font-size:13.5px;font-weight:600;color:var(--teal);background:#fff}
+.mini.g{background:var(--good-soft);border-color:var(--good-soft);color:var(--good)}
+.dtag{display:inline-flex;height:22px;align-items:center;padding:0 8px;border-radius:6px;background:#f5ddb5;color:#4d2b0a;font-size:12px;font-weight:700;margin-bottom:6px}
+
+/* tone guide */
+.trow{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #eef0ef}
+.trow:last-of-type{border:0}
+.tn{width:26px;height:26px;border-radius:13px;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none}
+.tl{flex:1;min-width:0}.tl b{font-size:16px}.tl div{font-size:13.5px;color:var(--muted)}
+.tex{width:72px;flex:none}.tex b{font-size:18px;color:var(--teal);display:block}.tex small{font-size:12.5px;color:var(--muted)}
+.tex svg{width:46px;height:22px;display:block}
+.sheet-wrap{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;justify-content:flex-end}
+.sheet-wrap .dim{position:absolute;inset:0;background:rgba(16,28,28,.45)}
+.sheet{position:relative;background:#fff;border-radius:24px 24px 0 0;padding:10px 18px 28px;max-height:88%;overflow-y:auto}
+.grab{width:40px;height:5px;border-radius:3px;background:#d5dbda;margin:0 auto 14px}
+.x{width:38px;height:38px;border-radius:19px;background:#eef1f0;display:flex;align-items:center;justify-content:center;flex:none}
+
+/* me */
+.lang{display:flex;justify-content:space-between;align-items:center;padding:13px 2px;border-bottom:1px solid var(--line);width:100%;text-align:left;font-size:16.5px}
+.lang small{color:var(--muted);font-size:13.5px;display:block}
+.radio{width:22px;height:22px;border-radius:11px;border:2px solid var(--teal-line);flex:none}
+.lang[aria-checked="true"] .radio{border:7px solid var(--teal)}
+.toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);background:#1d2b2a;color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;z-index:60;white-space:nowrap}
+
+
+/* round 2 */
+.syl b{text-align:center}
+.gloss .zh,.gloss .en{display:block}
+.gloss .en{margin-top:1px}
+.signoff{text-align:right;font-size:11.5px;line-height:1.45;color:var(--faint);margin-top:12px}
+.signoff b{font-weight:600;color:#8a7a68}
+.av{position:relative}
+.st{position:absolute;right:-1px;bottom:-1px;width:15px;height:15px;border-radius:8px;border:2.5px solid #fff}
+.st.on,.dot.on{background:#2e9b55}.st.off,.dot.off{background:#c8443a}
+.dot{width:9px;height:9px;border-radius:5px;display:inline-block;margin-right:5px}
+.avail{display:flex;align-items:center;gap:14px;font-size:13.5px;color:var(--muted)}
+.avail span{display:inline-flex;align-items:center}
+.markbox{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px 14px 12px}
+.marks3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.mk3{height:46px;border-radius:12px;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:15px;background:#fff}
+.mk3 svg{width:18px;height:18px}
+.mk3.g{color:var(--good)}.mk3.p{color:var(--brown)}.mk3.b{color:var(--bad)}
+.mk3.g[aria-pressed="true"]{background:var(--good-soft);border:2px solid var(--good)}
+.mk3.p[aria-pressed="true"]{background:var(--cream);border:2px solid var(--orange)}
+.mk3.b[aria-pressed="true"]{background:var(--bad-soft);border:2px solid var(--bad)}
+.scale{grid-template-columns:repeat(6,1fr);gap:6px}
+.wp{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.wp .choice{align-items:flex-start;text-align:left;padding:10px 12px}
+.wp .choice.whole{grid-column:1/-1;align-items:center;text-align:center}
+.field{display:flex;flex-direction:column;gap:4px;padding:10px 0;border-bottom:1px solid var(--line)}
+.field:last-child{border:0}
+.field label{font-size:12.5px;font-weight:700;color:var(--muted);letter-spacing:.4px}
+.field .v{font-size:16.5px}
+.field input{height:42px;border:1.5px solid var(--teal-line);border-radius:10px;padding:0 12px;font:inherit;font-size:16px;color:var(--ink);background:#fff}
+.wchip{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 6px 0 14px;border-radius:18px;background:var(--teal-soft);color:var(--teal-2);font-weight:600;font-size:15px}
+.wchip button{width:26px;height:26px;border-radius:13px;display:flex;align-items:center;justify-content:center}
+.wchip button svg{width:14px;height:14px}
+.res-h{font-size:12.5px;font-weight:700;letter-spacing:1.2px;color:var(--muted);margin:18px 0 8px}
+.empty{text-align:center;padding:24px 12px;color:var(--muted)}
+.draft{display:inline-flex;height:22px;align-items:center;padding:0 8px;border-radius:6px;background:#fdf0e1;color:var(--brown);font-size:12px;font-weight:700}
+
+
+/* round 3 */
+.stepper{display:flex;align-items:center;gap:12px;margin:-4px 0 14px;font-size:14px;font-weight:600;color:var(--muted)}
+.stepper .dots{display:flex;gap:5px}.stepper i{width:22px;height:6px;border-radius:3px;background:#d6dedd}.stepper i.on{background:var(--teal)}
+.aboutc{text-align:left;background:var(--cream);border-color:var(--cream-line)}
+.aboutc .one{margin:6px 0 0;font-size:15.5px;line-height:1.45;color:#3e3125}
+.rowlink{display:flex;align-items:center;gap:12px;width:100%}
+.rowlink b{font-size:16px;color:var(--ink)}
+.covsel{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.covsel button{border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:10px 12px;text-align:left}
+.covsel b{display:block;font-size:16px}.covsel span{font-size:13px;color:var(--muted)}
+.covsel button[aria-pressed="true"]{background:var(--teal);border-color:var(--teal)}
+.covsel button[aria-pressed="true"] b,.covsel button[aria-pressed="true"] span{color:#fff}
+.synced{display:inline-flex;align-self:flex-start;align-items:center;gap:6px;background:var(--good-soft);color:var(--good);font-weight:700;font-size:14px;padding:6px 12px;border-radius:16px}
+.tabmock{border:10px solid #1b1f1f;border-radius:28px;background:#fff;padding:16px;overflow:hidden}
+.kiosk{display:flex;flex-direction:column;gap:12px}
+.kiosk .ktitle{display:flex;align-items:center;justify-content:center;gap:12px;color:var(--teal);font-size:34px;font-weight:700;margin:4px 0 6px}
+.kiosk .kgrid{display:grid;gap:10px}
+.kiosk .big{padding:14px 16px;border-radius:20px;gap:14px}
+.kiosk .big .zh{font-size:32px}
+.kiosk .bigl{width:44px;height:44px}
+.kiosk.idle{align-items:center;text-align:center;padding:40px 10px;gap:8px}
+.kiosk .kgreet{font-size:52px;font-weight:700;color:var(--teal)}
+.kiosk .kname{margin-top:26px;font-size:18px;color:var(--muted)}
+.kiosk .kav{width:96px;height:96px;border-radius:48px;background:#f5d9a8;color:#5a3608;font-weight:800;font-size:34px;display:flex;align-items:center;justify-content:center}
+.kiosk .kn{font-size:30px;font-weight:700}
+@container (min-width:700px){.kiosk .kgrid{grid-template-columns:1fr 1fr}}
+
+
+/* round 4 */
+.scroll{scrollbar-width:none}.scroll::-webkit-scrollbar{display:none}
+.prow .todo{margin-top:6px;font-size:13.5px;color:var(--muted);line-height:1.35}
+.prow .todo b{color:var(--brown);font-weight:600}
+.remind{padding:12px 14px;gap:12px;border-radius:16px;width:100%}.remind b{font-size:16px}.remind .muted{font-size:13.5px}
+.hero .who{gap:16px}.hero .who .av{margin:-8px -4px 0 0}
+.pill{border-color:transparent;background:var(--teal-soft)}
+.pill.on,.pill:focus-visible{border-color:var(--teal);background:#fff}
+.tile{position:relative}
+.tile .todob{position:absolute;top:12px;right:12px;font-size:11.5px;font-weight:700;letter-spacing:.4px;background:var(--orange);color:#fff;border-radius:8px;padding:3px 8px}
+.prog{display:flex;flex-wrap:wrap;gap:8px}
+.prog span{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:16px;font-size:13.5px;font-weight:600;background:#eef1f0;color:var(--muted)}
+.prog span.done{background:var(--good-soft);color:var(--good)}
+.prog svg{width:14px;height:14px}
+.resume{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--teal);color:#fff;border-radius:16px;padding:14px 16px}
+.resume b{display:block;font-size:16px}.resume span.s{font-size:13.5px;opacity:.85}
+.otherin{width:100%;height:46px;border:1.5px solid var(--orange);border-radius:12px;padding:0 12px;font:inherit;font-size:16px;margin-top:10px;background:#fff;color:var(--ink)}
+
+/* ---------- tablet ---------- */
+@container (min-width:700px){
+  .shell{flex-direction:row}
+  .app{--tg:22px}
+  .tabbar{display:none}
+  .side{display:flex;flex-direction:column;align-items:center;gap:6px;width:92px;background:#fff;border-right:1px solid var(--line);padding:26px 6px;flex:none}
+  .side .logo{width:44px;height:44px;border-radius:14px;background:var(--teal);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+  .side .tab{min-width:76px;padding:9px 0;border-radius:14px}
+  .side .tab[aria-current="page"]{background:var(--teal-soft)}
+  .side .who{display:none}
+  .side .logo span{display:none}
+  .col{max-width:720px;padding:0 28px 32px}
+  .hero,.phero,.donehero{margin:0 -28px 16px;padding-left:28px;padding-right:28px;border-radius:0 0 24px 24px}
+  .bar{margin:0 -28px 18px;padding-left:28px;padding-right:28px}
+  .plist{grid-template-columns:1fr 1fr}
+  .tiles{grid-template-columns:repeat(4,1fr)}
+  .grid3.body{grid-template-columns:repeat(5,1fr)}
+  .split2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .scale{grid-template-columns:repeat(11,1fr)}
+  .remind{padding:16px;gap:14px}.remind b{font-size:18px}
+  .bigs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .toast{bottom:28px}
+}
+/* ---------- laptop ---------- */
+@container (min-width:1100px){
+  .side{width:248px;align-items:stretch;padding:24px 16px}
+  .side .logo{width:auto;height:auto;background:none;color:var(--teal);font-size:19px;justify-content:flex-start;margin:0 8px 18px;gap:10px}
+  .side .logo span{display:inline}
+  .side .logo i{width:38px;height:38px;border-radius:12px;background:var(--teal);color:#fff;font-style:normal;display:flex;align-items:center;justify-content:center;font-size:16px}
+  .side .tab{flex-direction:row;gap:12px;font-size:15.5px;padding:11px 12px;justify-content:flex-start}
+  .side .tab svg{width:22px;height:22px}
+  .side .who{display:flex;margin-top:auto;gap:10px;align-items:center;padding:12px;border-radius:14px;background:var(--bg)}
+  .side .who .av{width:40px;height:40px;font-size:15px}
+  .side .who b{display:block;font-size:14.5px}.side .who span{font-size:12.5px;color:var(--muted)}
+  .col{max-width:760px}
+  .ctx{display:block;width:340px;flex:none;border-left:1px solid var(--line);background:#fbfcfc;overflow-y:auto;padding:24px 20px}
+  .ctx.none{display:none}
+  .no-lap{display:none!important}
+}
+</style>
+
+<div class="toolbar" role="toolbar" aria-label="Preview size">
+  <span class="lbl">Preview</span>
+  <div class="seg" id="sizes">
+    <button data-size="phone" aria-pressed="true">Phone</button>
+    <button data-size="tablet" aria-pressed="false">Tablet</button>
+    <button data-size="laptop" aria-pressed="false">Laptop</button>
+  </div>
+  <span class="lbl" id="sizeinfo">390 × 844</span>
+</div>
+<div class="stage" id="stage">
+  <div class="device phone" id="device">
+    <div class="island"></div>
+    <div class="app" id="app"></div>
+  </div>
+</div>
+
+<script>
+/* ================= tone systems ================= */
+// colour follows the tone's shape, so "high flat" is the same blue in every dialect
+const SHAPE_COL={'High flat':'#1f6fb8','High rising':'#2e8a4b','Rising':'#2e8a4b','Mid flat':'#7d55b8','Low falling':'#c23c2a','Falling':'#d0671b','Low rising':'#a87a07','Low flat':'#56687a','Short low':'#8a5a3c','Short high':'#0f8c8c','Dipping':'#c2417f'};
+const TS={
+ Cantonese:{1:['High flat','Stay up high','M3 3H27',['chaan','餐','breakfast']],2:['High rising','Start mid, go up','M4 11L26 3',['jo','早','early']],3:['Mid flat','Normal speaking level','M3 11H27',['tung','痛','hurt']],4:['Low falling','Start low, drop lower','M4 15L26 19',['por','婆','grandma']],5:['Low rising','Start low, rise a little','M4 15L26 11',['yau','有','have']],6:['Low flat','Stay low and level','M3 15H27',['faan','飯','rice, meal']]},
+ Hokkien:{1:['High flat','Stay up high','M3 3H27',['ah','阿','(before a name)']],2:['Falling','Start high, drop down','M4 3L26 17',['za','早','early']],3:['Low falling','Start low, drop lower','M4 13L26 19',['tiah','疼','hurt']],4:['Short low','Low and cut short','M9 15H21',['peh','伯','uncle']],5:['Rising','Start low, go up','M4 17L26 5',['ling','零','zero']],7:['Mid flat','Normal speaking level','M3 11H27',['si','是','is']],8:['Short high','High and cut short','M9 5H21',['ziah','食','eat']]},
+ Teochew:{1:['Mid flat','Normal speaking level','M3 11H27',['kai','開','open']],2:['Falling','Start high, drop down','M4 3L26 15',['ma','嬤','grandma']],3:['Dipping','Dip down, then up a little','M3 14L15 19L27 12',['tiang','痛','hurt']],4:['Short low','Low and cut short','M9 17H21',['hueh','血','blood']],5:['High flat','Stay up high','M3 3H27',['si','時','time']],6:['Rising','Start mid, go up','M4 11L26 3',['ziu','就','soon']],7:['Low flat','Stay low and level','M3 19H27',['e','下','a moment']],8:['Short high','High and cut short','M9 3H21',['ziah','食','eat']]}
+};
+const TNOTE={Cantonese:'Cantonese tones stay the same in a sentence.',Hokkien:'Lines show each word\'s own tone. In a sentence, every word except the last changes tone, so use Hear it to copy the flow.',Teochew:'Lines show each word\'s own tone. In a sentence, most words change tone before the last one, so use Hear it to copy the flow.'};
+const tcol=(d,t)=>SHAPE_COL[TS[d][t][0]];
+function mark(d,t){return `<svg viewBox="0 0 30 22" preserveAspectRatio="none" aria-hidden="true"><path d="M0 1.5H30M0 20.5H30" stroke="#d9dfde" stroke-width="1" vector-effect="non-scaling-stroke"/><path d="${TS[d][t][2]}" stroke="${tcol(d,t)}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" fill="none"/></svg>`}
+function phrase(p,cls=''){return `<div class="phr ${cls}">${p.s.map(([w,t,k])=>`<div class="syl${k?' tr':''}" title="${TS[p.d][t][0]}">${mark(p.d,t)}<b>${w}</b></div>`).join('')}</div>`}
+function usedLegend(p){const ts=[...new Set(p.s.map(x=>x[1]))].sort();return `<div class="lgline"><span>Line = your voice</span><button class="linkbtn" data-tones="${p.d}">${I.info} All ${p.d} tones</button></div><div class="legend-row">${ts.map(t=>`<span class="lg" style="color:${tcol(p.d,t)}"><svg width="26" height="18" viewBox="0 0 30 22"><path d="${TS[p.d][t][2]}" stroke="${tcol(p.d,t)}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>${TS[p.d][t][0].toLowerCase()}</span>`).join('')}</div>`}
+const gl=(p,extra='')=>`<div class="gloss"><span class="zh">${p.zh}</span><span class="en">${p.en}${extra}</span></div>`;
+
+/* ================= phrases per dialect ================= */
+const mk=(d,o)=>{for(const k in o)o[k].d=d;return o};
+const PH={
+ Cantonese:mk('Cantonese',{
+  where:{s:[['bin',1],['doh',6],['tung',3,1],['ah?',3]],zh:'邊度痛呀？',en:'Where does it hurt?',cat:'Pain and symptoms'},
+  much:{s:[['yau',4],['ling',4],['dou',3],['sap,',6],['yau',5],['gay',2,1],['tung?',3]],zh:'由零到十，有幾痛？',en:'From 0 to 10, how much does it hurt?',cat:'Pain and symptoms'},
+  since:{s:[['gay',2],['see',4],['hoy',1],['chi?',2,1]],zh:'幾時開始？',en:'Since when?',cat:'Pain and symptoms'},
+  line1:{s:[['nee',1],['nup',1],['hai',6],['gong',3],['hyut',3],['aat',3],['geh',3],['yeuk',6]],zh:'呢粒係降血壓嘅藥',en:'This pill lowers your blood pressure.',cat:'Medicine'},
+  line2:{s:[['mooi',5],['jiu',1],['sik',6],['yuen',4],['jo',2],['chaan,',1,1],['sik',6],['yat',1],['nup',1]],zh:'每朝食完早餐食一粒',en:'One pill every morning, after breakfast.',cat:'Medicine'},
+  p1:{s:[['mooi',5],['jiu',1]],zh:'每朝',en:'every morning'},
+  p2:{s:[['sik',6],['yuen',4],['jo',2],['chaan',1,1]],zh:'食完早餐',en:'after breakfast'},
+  p3:{s:[['sik',6],['yat',1],['nup',1]],zh:'食一粒',en:'take one pill'},
+  ask:{s:[['nei',5],['ji',2],['bei',2],['ngo',5],['tai,',2],['gay',2,1],['see',4,1],['sik',6],['nee',1],['nup',1],['yeuk?',6]],zh:'你指俾我睇，幾時食呢粒藥？',en:'Point and show me: when do you take this pill?',cat:'Checking understanding'},
+  fix:{s:[['sik',6],['yuen',4],['faan',6,1]],zh:'食完飯',en:'after eating'},
+  wait:{s:[['wong',4],['goo',1],['leung',4,1],['jau',6],['lai',4],['ga',3],['la',3]],zh:'王姑娘就嚟喍喇',en:'Nurse Wong is coming soon.',cat:'Getting help'}}),
+ Hokkien:mk('Hokkien',{
+  where:{s:[['to',2],['wi',7],['tiah?',3,1]],zh:'佗位疼？',en:'Where does it hurt?',cat:'Pain and symptoms'},
+  much:{s:[['ling',5],['kau',3],['tsap,',8],['u',7],['gua',7,1],['tiah?',3]],zh:'零到十，有偌疼？',en:'From 0 to 10, how much does it hurt?',cat:'Pain and symptoms'},
+  since:{s:[['dang',1],['si',5,1],['kai',1],['si',2],['tiah?',3]],zh:'當時開始疼？',en:'Since when has it hurt?',cat:'Pain and symptoms'},
+  line1:{s:[['zit',4],['liap',8],['si',7],['kang',3],['hueh',4],['ap',4],['e',5],['ioh',8]],zh:'這粒是降血壓的藥',en:'This pill lowers your blood pressure.',cat:'Medicine'},
+  line2:{s:[['dak',8],['jit',8],['za',2],['ki,',2],['ziah',8],['pa,',2,1],['ziah',8],['zit',8],['liap',8]],zh:'逐日早起食飽，食一粒',en:'One pill every morning, after eating.',cat:'Medicine'},
+  p1:{s:[['dak',8],['jit',8],['za',2],['ki',2]],zh:'逐日早起',en:'every morning'},
+  p2:{s:[['ziah',8],['pa',2,1]],zh:'食飽',en:'after eating'},
+  p3:{s:[['ziah',8],['zit',8],['liap',8]],zh:'食一粒',en:'take one pill'},
+  ask:{s:[['li',2],['ki',2],['ho',7],['gua',2],['kua,',3],['dang',1,1],['si',5,1],['ziah',8],['zit',4],['liap',8],['ioh?',8]],zh:'你指予我看，當時食這粒藥？',en:'Point and show me: when do you take this pill?',cat:'Checking understanding'},
+  fix:{s:[['ziah',8],['pa',2,1]],zh:'食飽',en:'after eating'},
+  wait:{s:[['tan',2],['zit',8],['e,',7],['ho',7],['su',7],['sui',5,1],['lai',5]],zh:'等一下，護士隨來',en:'Wait a moment, the nurse is coming.',cat:'Getting help'}}),
+ Teochew:mk('Teochew',{
+  where:{s:[['di',2],['go',3],['tiang?',3,1]],zh:'底塊痛？',en:'Where does it hurt?',cat:'Pain and symptoms'},
+  much:{s:[['leng',5],['gau',3],['zap,',8],['jua',7,1],['tiang?',3]],zh:'零到十，偌痛？',en:'From 0 to 10, how much does it hurt?',cat:'Pain and symptoms'},
+  since:{s:[['di',2],['si',5,1],['kai',1],['si',2],['tiang?',3]],zh:'底時開始痛？',en:'Since when has it hurt?',cat:'Pain and symptoms'},
+  line1:{s:[['zi',2],['liap',8],['si',6],['gang',3],['hueh',4],['ah',4],['gai',5],['ioh',8]],zh:'只粒是降血壓個藥',en:'This pill lowers your blood pressure.',cat:'Medicine'},
+  line2:{s:[['dak',8],['jik',8],['za',2],['ki,',2],['ziah',8],['ba,',2,1],['ziah',8],['zek',8],['liap',8]],zh:'逐日早起食飽，食一粒',en:'One pill every morning, after eating.',cat:'Medicine'},
+  p1:{s:[['dak',8],['jik',8],['za',2],['ki',2]],zh:'逐日早起',en:'every morning'},
+  p2:{s:[['ziah',8],['ba',2,1]],zh:'食飽',en:'after eating'},
+  p3:{s:[['ziah',8],['zek',8],['liap',8]],zh:'食一粒',en:'take one pill'},
+  ask:{s:[['le',2],['zi',2],['ki',4],['ua',2],['toin,',2],['di',2,1],['si',5,1],['ziah',8],['zi',2],['liap',8],['ioh?',8]],zh:'汝指乞我睇，底時食只粒藥？',en:'Point and show me: when do you take this pill?',cat:'Checking understanding'},
+  fix:{s:[['ziah',8],['ba',2,1]],zh:'食飽',en:'after eating'},
+  wait:{s:[['dang',2],['zek',8],['e,',7],['hou',6],['se',6],['ziu',6,1],['lai',5]],zh:'等一下，護士就來',en:'Wait a moment, the nurse is coming.',cat:'Getting help'}})
+};
+// labels on pictures and choices, per dialect
+const LB={
+ Cantonese:{morning:'朝早',noon:'晏晝',night:'夜晚',before:'飯前',after:'食完飯',showAfter:'食完早餐',one:'一粒',two:'兩粒',today:'今朝',yday:'尋日',days:'幾日',p0:'唔痛',p10:'頂唔順'},
+ Hokkien:{morning:'早起',noon:'中晝',night:'暗時',before:'食飯前',after:'食飽',showAfter:'食飽',one:'一粒',two:'兩粒',today:'今仔日',yday:'昨昏',days:'幾日',p0:'無疼',p10:'擋袂牢'},
+ Teochew:{morning:'早起',noon:'日晝',night:'暝昏',before:'食飯前',after:'食飽',showAfter:'食飽',one:'一粒',two:'兩粒',today:'今日',yday:'昨日',days:'幾日',p0:'無痛',p10:'痛唔得'}
+};
+
+/* ================= patients and people ================= */
+const PT={
+ lim:{id:'lim',bed:'03',name:'Mdm Lim Ah Choo',short:'Mdm Lim',age:82,d:'Cantonese',he:'she',him:'her',his:'her',hers:'hers',He:'She',todo:'explain new BP medication',todoGo:'practise',call:'婆婆',callR:'por-por',greet:{s:[['por',4],['por,',2],['jo',2],['sun!',4,1]],zh:'婆婆，早晨！',en:'Good morning, Grandma!',d:'Cantonese'},
+  chips:['Speaks Cantonese','Some Mandarin','Does not read'],notes:'Likes to be called <span class="zh">婆婆</span> (por-por). Calmer when spoken to slowly, face to face. Smiles when young nurses try Cantonese, and will correct you kindly.',by:'SN Wong Mei Ling',corr:'2 corrections from Mdm Lim saved',family:'daughter',visit:'6 pm'},
+ tan:{id:'tan',bed:'05',name:'Mr Tan Kok Wee',short:'Mr Tan',age:79,d:'Hokkien',he:'he',him:'him',his:'his',hers:'his',He:'He',todo:'ask about his knee pain',todoGo:'symptoms',call:'阿伯',callR:'ah peh',greet:{s:[['ah',1],['peh,',4],['za!',2,1]],zh:'阿伯，早！',en:'Good morning, Uncle!',d:'Hokkien'},
+  chips:['Speaks Hokkien','Some Mandarin','Reads Chinese'],notes:'Prefers Hokkien over Mandarin. Hears better on his right side, so stand there. Likes a short chat about his grandson before anything medical.',by:'SN Ong Siew Ling',corr:'1 correction from Mr Tan saved',family:'son',visit:'7 pm'},
+ goh:{id:'goh',bed:'08',name:'Mdm Goh Siew Hwa',short:'Mdm Goh',age:86,d:'Teochew',he:'she',him:'her',his:'her',hers:'hers',He:'She',todo:'check she understood her BP pill',todoGo:'check',call:'阿嬤',callR:'a ma',greet:{s:[['a',1],['ma,',2],['za!',2,1]],zh:'阿嬤，早！',en:'Good morning, Grandma!',d:'Teochew'},
+  chips:['Speaks Teochew','Some Hokkien','Does not read'],notes:'Answers yes or no questions more easily than open ones. Gets anxious about new pills, so hold up the pill itself while you explain.',by:'SN Chua Lay Hoon',corr:'No corrections yet',family:'granddaughter',visit:'5 pm'}
+};
+const HELP={
+ Cantonese:[{i:'WM',n:'SN Wong Mei Ling',sh:'SN Wong',r:'Ward 7B · Senior staff nurse',s:'Native Cantonese · free in ~5 min',on:1},{i:'CK',n:'Chan Kwok Leung',sh:'Chan Kwok Leung',r:'Ward 7A · Patient care assistant',s:'Conversational · busy until 11:00',on:0},{i:'DL',n:'Dr Leung Wai Kit',sh:'Dr Leung',r:'Medical team · on call',s:'Native Cantonese · for diagnosis talks',on:1}],
+ Hokkien:[{i:'OS',n:'SN Ong Siew Ling',sh:'SN Ong',r:'Ward 7B · Staff nurse',s:'Native Hokkien · free now',on:1},{i:'LK',n:'Lee Ah Kow',sh:'Lee Ah Kow',r:'Ward 7B · Patient care assistant',s:'Conversational · busy until 11:30',on:0},{i:'KJ',n:'Dr Koh Jun Wei',sh:'Dr Koh',r:'Medical team · on call',s:'Native Hokkien · for diagnosis talks',on:1}],
+ Teochew:[{i:'CL',n:'SN Chua Lay Hoon',sh:'SN Chua',r:'Ward 6A · Senior staff nurse',s:'Native Teochew · on call, ~15 min',on:1},{i:'NB',n:'Ng Bee Lian',sh:'Ng Bee Lian',r:'Volunteer interpreter',s:'Teochew · weekdays 9 am to 5 pm',on:1},{i:'YH',n:'Dr Yeo Hock Seng',sh:'Dr Yeo',r:'Medical team · off today',s:'Native Teochew · back tomorrow',on:0}]
+};
+const TIPS={
+ Cantonese:[['<span class="zh">早餐</span> jo-chaan: keep chaan high','From Mdm Lim, Bed 03 · today'],['Say <span class="zh">婆婆</span> before every question. It slows you down too.','From SN Wong']],
+ Hokkien:[['<span class="zh">食飽</span> ziah pa: keep pa short','From SN Ong'],['Many older patients say <span class="zh">早起</span> za ki for morning, not <span class="zh">早上</span>.','From Mr Tan, Bed 05 · last week']],
+ Teochew:[['<span class="zh">痛</span> tiang dips down, then comes up a little','From SN Chua'],['Ask yes or no questions first. Open questions can wait.','From SN Chua']]
+};
+let NOTES=[
+ {d:'Cantonese',st:'p',p:PH.Cantonese.fix,note:'<b>Tip from SN Wong:</b> say faan low and flat.',src:'Mdm Lim · Bed 03 · 10:41'},
+ {d:'Cantonese',st:'p',p:{d:'Cantonese',s:[['tsum',4],['yat',6,1]],zh:'尋日',en:'yesterday'},note:'<b>Also heard:</b> Mr Chan says <span class="zh">琴日</span> (kam yat) instead.',src:'Mr Chan · Bed 09'},
+ {d:'Hokkien',st:'p',p:PH.Hokkien.p2,note:'<b>Tip from SN Ong:</b> keep pa short and falling.',src:'Mr Tan · Bed 05'},
+ {d:'Teochew',st:'p',p:PH.Teochew.where,note:'<b>My note:</b> tiang dips down, then up a little.',src:'Mdm Goh · Bed 08'},
+ {d:'Cantonese',st:'l',p:{d:'Cantonese',s:[['jo',2],['chaan',1,1]],zh:'早餐',en:'breakfast'},src:'Mdm Lim corrected me · today'},
+ {d:'Cantonese',st:'l',p:PT.lim.greet,src:'Heritage notes · Bed 03'},
+ {d:'Hokkien',st:'l',p:PT.tan.greet,src:'Heritage notes · Bed 05'},
+ {d:'Teochew',st:'l',p:PT.goh.greet,src:'Heritage notes · Bed 08'},
+];
+const LANGS=[['English','English'],['简体中文','Chinese (Simplified)'],['Tagalog','Filipino'],['Bahasa Melayu','Malay'],['தமிழ்','Tamil'],['မြန်မာ','Burmese'],['हिन्दी','Hindi']];
+
+/* ================= icons ================= */
+const sv=(d,w=2)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const I={
+ back:sv('<path d="M15 5l-7 7 7 7"/>',2.4),chev:sv('<path d="M9 5l7 7-7 7"/>',2),search:sv('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',2.2),
+ speaker:sv('<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/>'),mic:sv('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/>'),
+ heart:sv('<path d="M12 20s-8-5-8-11a4.5 4.5 0 018-2.5A4.5 4.5 0 0120 9c0 6-8 11-8 11z"/>',1.9),pill:sv('<rect x="3" y="8.5" width="18" height="7" rx="3.5" transform="rotate(-45 12 12)"/><path d="M9.5 9.5l5 5"/>',2),
+ person:sv('<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M19 8v6M16 11h6"/>',1.9),check:sv('<path d="M5 12l5 5 9-10"/>',2.6),x:sv('<path d="M6 6l12 12M18 6L6 18"/>',2.4),
+ book:sv('<path d="M5 4h14M7 4v15l3-2V4M17 4v6"/>',1.9),phone:sv('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/>',1.9),
+ notes:sv('<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h3"/>',1.9),info:sv('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.1"/>',2.2),
+ sun:sv('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'),
+ bowl:sv('<path d="M3 12h18a9 9 0 01-18 0z"/><path d="M9 4v3M12 3v4M15 4v3"/>'),moon:sv('<path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/>'),
+ noon:sv('<path d="M4 18h16M7 18a5 5 0 0110 0M12 6v3M5.6 9.6l1.8 1.8M18.4 9.6l-1.8 1.8"/>'),eye:sv('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
+ plus:sv('<path d="M12 5v14M5 12h14"/>',2.4),shield:sv('<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>'),
+ play:sv('<path d="M7 5l12 7-12 7z"/>'),dash:sv('<path d="M5 12h14"/>',2.6),half:sv('<circle cx="12" cy="12" r="8"/><path d="M12 4v16" /><path d="M12 4a8 8 0 010 16z" fill="currentColor"/>',2),
+ edit:sv('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/>',2),
+};
+const ic=(k,sz=20)=>I[k].replace('<svg',`<svg width="${sz}" height="${sz}"`);
+
+/* ================= state ================= */
+const S={screen:'home',hist:[],pid:'lim',picked:null,prSel:null,helpD:null,body:null,pain:null,since:null,picks:{},save:'idle',word:null,mark:null,issue:null,
+ notesF:'All',pbF:'All',q:{},review:{a:'right',b:null},sheet:null,
+ me:{name:'Hui Min',role:'Staff nurse',centre:'Riverside General Hospital',dept:'General Medicine',wards:['Ward 7B','Ward 7A'],lang:0,dialects:['English','Mandarin','Hokkien']},editMe:false,langOpen:false};
+const P=()=>PT[S.pid];
+const D=()=>P().d;
+const ph=k=>PH[D()][k];
+const TABS=[['home','Patients','person'],['phrasebook','Phrasebook','book'],['notes','Notes','notes'],['help','Get help','phone'],['me','Me','heart']];
+const tabOf=s=>({home:'home',patient:'home',symptoms:'home',practise:'home',bedside:'home',show:'home',check:'home',coming:'help',done:'home',review:'me',phrasebook:'phrasebook',notes:'notes',help:'help',me:'me'}[s]||'home');
+const NAMES={morning:'morning',noon:'afternoon',night:'night',before:'before food',after:'after food',one:'1 pill',two:'2 pills'};
+const RIGHT={morning:1,after:1,one:1};
+
+function cap(x){return x.charAt(0).toUpperCase()+x.slice(1)}
+function loc(p){return S.loc||('Bed '+p.bed)}
+function go(s,push=true){
+ if(s==='check'&&S.screen!=='check'){S.picks=S.screen==='bedside'?{morning:1,before:1,one:1}:S.screen==='coming'?{morning:1,after:1,one:1}:{};S.save='idle';S.mark=null}
+ if(s==='bedside'&&S.screen!=='bedside'){S.save='idle'}
+ if(s==='practise')S.prSel=null;
+ if(s==='help'&&!['coming'].includes(S.screen))S.helpD=D();
+ if(push&&S.screen!==s)S.hist.push(S.screen);S.screen=s;S.sheet=null;render(true)}
+function back(){S.screen=S.hist.pop()||'home';S.sheet=null;render(true)}
+/* Audio: a real recording wins. Otherwise only Cantonese can use the device's own voice, and only if it truly is Cantonese.
+   Never fall back to Mandarin. */
+const AUDIO={}; // 'Dialect|中文' -> recording URL, filled in when recordings are added
+function cantoVoice(){try{return speechSynthesis.getVoices().find(v=>/^(zh[-_]HK|yue)/i.test(v.lang)||/cantonese|粵|廣東/i.test(v.name))}catch(e){return null}}
+try{speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>{}}catch(e){}
+function speak(t,d){const key=d+'|'+t;
+ if(AUDIO[key]){try{const a=new Audio(AUDIO[key]);a.play()}catch(e){}return}
+ if(d==='Cantonese'){const v=cantoVoice();if(v){try{const u=new SpeechSynthesisUtterance(t);u.voice=v;u.lang=v.lang;u.rate=.8;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}return}
+  toast('No Cantonese voice on this device yet. Recording needed.');return}
+ toast(`No ${d} recording yet for this phrase.`)}
+function toast(m){const d=document.getElementById('device');const t=document.createElement('div');t.className='toast';t.textContent=m;d.appendChild(t);setTimeout(()=>t.remove(),2200)}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const strip=s=>String(s).replace(/<[^>]+>/g,'');
+
+/* ================= pieces ================= */
+const bar=(t,sub)=>`<div class="bar"><button class="back" data-act="back" aria-label="Back">${I.back}</button><div><h1>${t}</h1>${sub?`<p>${sub}</p>`:''}</div></div>`;
+const hear=(zh,label=true,d)=>label?`<button class="pill" data-say="${zh}" data-d="${d||D()}">${ic('speaker')} Hear it</button>`:`<button class="ic" data-say="${zh}" data-d="${d||D()}" aria-label="Hear it">${I.speaker}</button>`;
+const searchBox=(id,ph)=>`<label class="search" for="${id}">${I.search.replace('<svg','<svg width="20" height="20" style="color:var(--muted);flex:none"')}<input id="${id}" type="search" placeholder="${ph}" value="${esc(S.q[id]||'')}" autocomplete="off"></label>`;
+const match=(q,...xs)=>{q=q.trim().toLowerCase();if(!q)return true;return xs.join(' ').toLowerCase().includes(q)};
+const phText=p=>p.s.map(x=>x[0]).join(' ')+' '+p.zh+' '+p.en+' '+(p.cat||'');
+function allPhrases(){const out=[];for(const d in PH)for(const k of ['where','much','since','line1','line2','ask','wait'])out.push(PH[d][k]);for(const k in PT)out.push({...PT[k].greet,cat:'Greetings'});return out}
+const phCard=(p,label)=>`<div class="card"><div class="lgline" style="margin-bottom:8px"><p class="eyebrow">${label||p.cat||''}</p><span class="tag" style="height:22px;font-size:12px">${p.d}</span></div><div class="prow2"><div style="min-width:0">${phrase(p,'sm')}${gl(p)}</div>${hear(p.zh,false,p.d)}</div></div>`;
+const statusAv=(h,cls='')=>`<div class="av ${cls}">${h.i}<span class="st ${h.on?'on':'off'}" aria-label="${h.on?'Available':'Busy'}"></span></div>`;
+
+/* word picker shown after "Tap to save" */
+function sayDiff(){const p=P();
+ if(S.save==='saved'){const w=S.word;return `<div class="saved"><div class="lgline"><b style="color:var(--good);font-size:19px;display:flex;gap:8px;align-items:center"><span style="width:22px">${I.check}</span>Saved for review</b><button class="mini" data-act="undo">Undo</button></div>
+  <div style="margin-top:10px">${w.whole?`<b>Whole sentence</b><div class="gloss"><span class="zh">${w.zh}</span><span class="en">${w.en}</span></div>`:gl(w)}</div>
+  <p style="margin:8px 0 0;font-size:15px;line-height:1.5">${p.short} · 10:41. At handover, ${HELP[D()][0].sh} listens and decides if the phrasebook needs fixing.</p></div>`}
+ if(S.save==='pick'){const ctxP=S.screen==='check'?ph('ask'):ph('line2');const opts=[ph('p1'),ph('p2'),ph('p3'),{zh:p.call,en:`what we call ${p.him} (${p.callR})`,d:D(),s:p.greet.s.slice(0,1)}];
+  return `<div class="dashed"><h3>Which word did <span class="zh">${p.call}</span> say differently?</h3><div class="muted sm">Pick the part you heard. If you are not sure, save the whole sentence.</div>
+  <div class="wp">${opts.map((o,i)=>`<button class="choice" data-word="${i}"><span class="zh">${o.zh}</span><span>${o.en}</span></button>`).join('')}<button class="choice whole" data-word="whole"><span style="font-weight:700;color:var(--ink)">Not sure · save the whole sentence</span><span class="zh" style="font-size:14px;font-weight:400">${ctxP.zh}</span></button></div>
+  <button class="mini" style="margin-top:10px" data-act="undo">Cancel</button></div>`}
+ return `<div class="dashed"><h3>Did <span class="zh">${p.call}</span> say a word differently?</h3><div class="two"><button class="pill" style="justify-content:center;height:50px" data-act="savediff">${ic('heart')} Tap to save</button><button class="pill" style="justify-content:center;height:50px" data-act="rec">${ic('mic')} Hold to record ${p.him}</button></div><div class="muted sm" style="margin-top:10px">Optional. You pick the word next. No typing.</div></div>`}
+
+/* ================= screens ================= */
+const V={};
+V.home=()=>{const q=S.q['q-home']||'';const me=S.me;
+ const pts=[...Object.values(PT).map(p=>({b:p.bed,n:`${p.name}, ${p.age}`,d:p.d,todo:'To do: explain new BP medication',go:p.id})),{b:'11',n:'Mr Ramasamy S., 74',d:'Tamil',ex:'Family translates'}];
+ const row=x=>`<button class="card ${x.go&&x.go===S.picked&&!q?'hl':''}" ${x.go?`data-pt="${x.go}"`:'data-act="tamil"'}><div class="prow"><div class="bed">${x.b}</div><div style="flex:1;min-width:0"><h3>${x.n}</h3><span class="tag ${x.d==='Tamil'?'ta':''}">${x.d}</span>${x.ex?` <span class="muted" style="font-size:15px">${x.ex}</span>`:''}${x.todo?`<div class="muted" style="margin-top:6px;font-size:15px">${x.todo}</div>`:''}</div><span class="muted" style="width:22px">${I.chev}</span></div></button>`;
+ const head=`<div class="hero"><div class="topgap"></div>
+ <div class="who"><div><small>${esc(me.wards[0]||'').toUpperCase()} · MORNING SHIFT</small><h1>Good morning, ${esc(me.name)}</h1><p>You speak: English · Mandarin · <b>Hokkien</b></p></div><button class="av" data-tab="me" aria-label="Me">HM</button></div>
+ ${searchBox('q-home','Search a patient, word or phrase')}</div>`;
+ if(q.trim()){const pr=pts.filter(x=>match(q,x.b,x.n,x.d));const phs=allPhrases().filter(p=>match(q,phText(p),p.d));const ns=NOTES.filter(n=>match(q,phText(n.p),n.src,strip(n.note||'')));
+  return head+`<div class="res-h">PATIENTS · ${pr.length}</div><div class="plist">${pr.map(row).join('')||'<div class="empty">No patients match.</div>'}</div>
+  <div class="res-h">PHRASES · ${phs.length}</div><div class="stack">${phs.slice(0,8).map(p=>phCard(p)).join('')||'<div class="empty">No phrases match. Try English, Chinese or how it sounds.</div>'}</div>
+  <div class="res-h">MY NOTES · ${ns.length}</div><div class="stack">${ns.map(ncard).join('')||'<div class="empty">No notes match.</div>'}</div>`}
+ return head+`<div class="stack" style="margin-top:16px">
+ <div class="card"><div class="lgline" style="font-size:17px;color:var(--ink);font-weight:700"><span>Dialect coverage this shift</span><button class="linkbtn" style="font-size:15px" data-help="Cantonese">See team</button></div>
+  <div class="cov"><button data-help="Hokkien" style="text-align:left"><b>Hokkien</b><span>You + 2 others</span></button><button data-help="Cantonese" style="text-align:left"><b>Cantonese</b><span>SN Wong</span></button><button class="oc" data-help="Teochew" style="text-align:left"><b>Teochew</b><span>On call only</span></button></div></div>
+ <button class="remind" data-pt="lim" data-then="practise"><span style="color:var(--orange)">${ic('mic',26)}</span><span style="text-align:left"><b>2 phrases to practise before 10:30</b><span class="muted">For Mdm Lim's new BP pill · 3 min</span></span></button>
+</div>
+<div class="sechead"><h2>My patients</h2><span class="muted">4 assigned</span></div>
+<div class="plist">${pts.map(row).join('')}</div>`};
+
+V.patient=()=>{const p=P();return `
+<div class="phero"><div class="topgap"></div><button class="back" data-act="back" aria-label="Back" style="color:#fff">${I.back}</button>
+ <div style="font-size:13px;letter-spacing:1.4px;font-weight:700;opacity:.85;margin-top:14px">BED ${p.bed} · ${esc(S.me.wards[0]).toUpperCase()}</div><h1>${p.name}, ${p.age}</h1>
+ <div class="chips">${p.chips.map((c,i)=>`<span class="chip ${i?'':'k'}">${c}</span>`).join('')}</div></div>
+<div class="stack">
+ <div class="card hl"><p class="eyebrow or">Greet ${p.him} yourself</p><div style="margin-top:10px">${phrase(p.greet)}</div>
+  <div style="margin-top:12px">${usedLegend(p.greet)}</div>
+  <div class="zh" style="font-size:26px;font-weight:700;margin-top:12px">${p.greet.zh}</div><div class="gloss"><span class="en">${p.greet.en}</span></div>
+  <div class="two" style="margin-top:14px">${hear(p.greet.zh)}<button class="pill" style="border-color:var(--teal)" data-go="practise">${ic('mic')} Practise</button></div></div>
+ <div class="notes-box"><p class="eyebrow" style="color:var(--brown)">Heritage notes</p><p>${p.notes}</p><div class="signoff">Added by <b>${p.by}</b><br>${p.corr}</div></div>
+ <h2 style="font-size:21px;margin:10px 0 0">What do you need to say?</h2>
+ <div class="tiles">
+  <button class="tile" data-go="symptoms"><span style="color:var(--teal);width:26px">${I.heart}</span><b>Ask about symptoms</b></button>
+  <button class="tile" data-go="practise"><span style="color:var(--teal);width:26px">${I.pill}</span><b>Explain treatment</b></button>
+  <button class="tile warm" data-go="help"><span style="color:var(--brown);width:26px">${I.person}</span><b>Explain diagnosis</b></button>
+  <button class="tile" data-go="check"><span style="color:var(--teal);width:26px">${I.check}</span><b>Check ${p.he} understood</b></button>
+ </div>
+ <button class="btn sec" data-go="help">${ic('person',24)} Get a ${p.d} speaker</button>
+</div>`};
+
+const BODY=[['head','頭','Head'],['throat','喉嚨','Throat'],['chest','心口','Chest'],['upper','上肚','Upper belly'],['lower','下肚','Lower belly'],['back','背脊','Back'],['arm','手','Arm / hand'],['leg','腳','Leg / foot'],['other','其他','Other']];
+const sinceTxt=()=>({t:'since today',y:'since yesterday',d:'for days'}[S.since]);
+const symTxt=()=>{const a=[];const bs=[].concat(S.body||[]);if(bs.length)a.push(bs.map(k=>k==='other'?(S.bodyOther||'other'):BODY.find(b=>b[0]===k)[2].toLowerCase()).join(', '));if(S.pain!=null)a.push(S.pain+'/10');if(S.since)a.push(sinceTxt());return a.join(' · ')};
+V.symptoms=()=>{const p=P(),L=LB[D()];return `${bar('Ask about symptoms',`${p.short} · ${loc(p)}`)}
+<div class="stack">
+ <div class="card hl"><p class="eyebrow">Step 1 · Where</p><div style="margin-top:10px">${phrase(ph('where'))}</div><div style="margin-top:10px">${usedLegend(ph('where'))}</div>${gl(ph('where'))}
+  <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">${hear(ph('where').zh)}</div>
+  <label class="fl">${p.He.toUpperCase()} TAPS WHERE IT HURTS</label>
+  <div class="grid3 body">${BODY.map(([k,z,e])=>`<button class="choice" data-body="${k}" aria-pressed="${S.body===k}"><span class="zh">${z}</span><span>${e}</span></button>`).join('')}</div>
+  <label class="fl" for="sym-note">YOUR NOTE (OPTIONAL)</label><textarea id="sym-note" class="note" placeholder="What else did you notice?">Sharp, comes and goes. Worse after eating.</textarea>
+ </div>
+ <div class="card"><p class="eyebrow">Step 2 · How much</p><div style="margin-top:10px">${phrase(ph('much'))}</div>${gl(ph('much'))}
+  <div style="margin-top:12px">${hear(ph('much').zh)}</div>
+  <label class="fl">${p.He.toUpperCase()} POINTS TO A NUMBER</label>
+  <div class="scale">${[0,1,2,3,4,5,6,7,8,9,10].map(n=>`<button data-pain="${n}" aria-pressed="${S.pain===n}">${n}</button>`).join('')}</div>
+  <div class="scale-ends"><span>0 <span class="zh">${L.p0}</span> no pain</span><span>10 <span class="zh">${L.p10}</span> unbearable</span></div></div>
+ <div class="card"><p class="eyebrow">Step 3 · Since when</p><div style="margin-top:10px">${phrase(ph('since'))}</div>${gl(ph('since'))}
+  <div style="margin:12px 0">${hear(ph('since').zh)}</div>
+  <div class="grid3">${[['t',L.today,'Today'],['y',L.yday,'Yesterday'],['d',L.days,'Days']].map(([k,z,e])=>`<button class="choice" data-since="${k}" aria-pressed="${S.since===k}"><span class="zh">${z}</span><span>${e}</span></button>`).join('')}</div></div>
+ <button class="btn pri" data-act="savesym">${symTxt()?'Save: '+symTxt():'Save'}</button>
+</div>`};
+
+const prow=(pp,i)=>`<div class="card ${S.prSel===i?'focus':''}" data-prsel="${i}" style="cursor:pointer"><div class="prow2"><div style="min-width:0">${phrase(pp,'sm')}${gl(pp)}</div>${hear(pp.zh,false,pp.d)}</div></div>`;
+const TIPTXT={Cantonese:'"Keep <b>chaan</b> high and flat. If it comes out wrong, point to the breakfast picture. She\'ll get it."',Hokkien:'"Keep <b>pa</b> short. If it comes out wrong, point to the bowl picture. He\'ll get it."',Teochew:'"Say <b>ba</b> short and falling. Hold up the pill while you point to the bowl."'};
+V.practise=()=>{const p=P(),h=HELP[D()][0];return `${bar('Practise first','At the station · only you can hear')}
+<div class="stack">
+ <div class="card"><div class="prow"><div class="bed" style="color:var(--teal)">${ic('pill',28)}</div><div><h3 style="margin:0;font-size:19px">Amlodipine 5 mg</h3><div class="muted">New · for high blood pressure</div></div></div></div>
+ <p class="eyebrow">When to take it · in small pieces</p>
+ <div class="card" style="padding:12px 14px">${usedLegend({d:D(),s:[...ph('p1').s,...ph('p2').s,...ph('p3').s]})}</div>
+ ${prow(ph('p1'),0)}${prow(ph('p2'),1)}${prow(ph('p3'),2)}
+ <div class="card" style="text-align:center;padding:22px 16px"><button class="mic" aria-label="Record yourself" data-act="rec"><span style="color:#fff;width:40px">${I.mic}</span></button><h3 style="margin:14px 0 6px;font-size:20px">Say it, then hear yourself back</h3><div class="muted">No score. Your recording stays on this phone and is deleted after the shift.</div></div>
+ <div class="tipbox"><p class="eyebrow" style="color:var(--brown)">Tip from ${h.sh}</p><p>${TIPTXT[D()]}</p></div>
+ <button class="btn pri" data-go="bedside">I'm ready · go to bedside</button>
+</div>`};
+
+V.bedside=()=>{const p=P(),L=LB[D()];return `${bar('Say it at the bedside',`${p.short} · ${loc(p)}`)}
+<div class="stack">
+ <div class="card"><p class="eyebrow">1 · What it's for · Done ✓</p><div style="margin-top:8px;opacity:.75">${phrase(ph('line1'),'sm')}</div>${gl(ph('line1'))}</div>
+ <div class="card hl"><p class="eyebrow or">2 · When to take it · Say this now</p><div style="margin-top:10px">${phrase(ph('line2'))}</div>
+  <div style="margin-top:12px">${usedLegend(ph('line2'))}</div>${gl(ph('line2'))}
+  <div style="margin-top:12px">${hear(ph('line2').zh)}</div>
+  <div class="rxhead"><span class="rxt">PRESCRIPTION · TAKE 1 PILL</span><span class="muted sm">Point to each as you say it</span></div>
+  <div class="grid3"><div class="rx">${ic('sun',24)}<span class="zh">${L.morning}</span><span>Morning</span><span class="rxl yes">${ic('check',13)}Take</span></div><div class="rx">${ic('bowl',24)}<span class="zh">${L.showAfter}</span><span>After food</span><span class="rxl yes">${ic('check',13)}Take</span></div><div class="rx no">${ic('moon',24)}<span class="zh">${L.night}</span><span>Night</span><span class="rxl">${ic('x',13)}None</span></div></div>
+  <div style="display:flex;gap:10px;align-items:center;background:var(--teal-soft);border-radius:12px;padding:10px 12px;margin-top:12px;color:var(--teal);font-size:14.5px"><span style="width:20px;flex:none">${I.shield}</span>Dose and time are always shown, never only spoken.</div>
+  <button class="btn sec" style="margin-top:12px;height:50px;font-size:17px" data-go="show">${ic('eye',22)} Show ${p.him} full screen</button></div>
+ ${sayDiff()}
+ <button class="btn pri" data-go="check">Next: check ${p.he} understood</button>
+</div>`};
+
+V.show=()=>{const L=LB[D()],p=P();return `<div class="topgap"></div><div style="display:flex;justify-content:space-between;align-items:center;margin:4px 0 22px"><button class="pill" data-act="back">${ic('back',18)} Nurse view</button><span class="muted sm">Turn the phone to ${p.him}</span></div>
+<div style="display:flex;justify-content:center;align-items:center;gap:16px;color:var(--teal);margin-bottom:22px"><span style="width:56px">${I.pill}</span><span class="zh" style="font-size:44px;font-weight:700">降血壓藥</span></div>
+<div class="stack bigs">
+ <div class="big"><span style="width:62px;flex:none">${I.sun}</span><div style="flex:1"><div class="zh">${L.morning}</div><span>morning</span></div><span class="bigl yes">${ic('check',28)}</span></div>
+ <div class="big"><span style="width:62px;flex:none">${I.bowl}</span><div style="flex:1"><div class="zh">${L.showAfter}</div><span>after eating</span></div><span class="bigl yes">${ic('check',28)}</span></div>
+ <div class="big"><span style="width:62px;flex:none">${I.pill}</span><div style="flex:1"><div class="zh">× 1 ${L.one}</div><span>one pill</span></div></div>
+ <div class="big off"><span style="width:62px;flex:none">${I.moon}</span><div style="flex:1"><div class="zh">${L.night}</div><span>night · none</span></div><span class="bigl">${ic('x',28)}</span></div>
+</div>`};
+
+const PICKS=[['morning','sun'],['noon','noon'],['night','moon'],['before','x'],['after','bowl'],['one','pill'],['two','pill']];
+function verdict(){const sel=Object.keys(S.picks).filter(k=>S.picks[k]);const wrong=sel.filter(k=>!RIGHT[k]);const right=sel.filter(k=>RIGHT[k]);
+ if(!sel.length)return 'none';if(!wrong.length&&right.length===3)return 'good';if(right.length>=2&&wrong.length<=1)return 'part';return 'bad'}
+function pk([k,i]){const L=LB[D()];const on=S.picks[k];const cls=on?(RIGHT[k]?'ok':'no'):'';return `<button class="pick ${cls}" data-pick="${k}" aria-pressed="${!!on}">${on?`<span class="mk">${RIGHT[k]?I.check:I.x}</span>`:''}<span style="width:26px;display:inline-flex">${I[i].replace('<svg','<svg class="i"')}</span><span class="zh">${L[k]}</span><span>${NAMES[k]}</span></button>`}
+V.check=()=>{const p=P(),v=S.mark||verdict();const w=Object.keys(S.picks).filter(k=>S.picks[k]&&!RIGHT[k]);const okk=['morning','after','one'].filter(k=>S.picks[k]);
+ S.issue=v==='part'?`mixed up ${w.map(k=>NAMES[k]).join(', ')||'one part'} when asked when to take it`:v==='bad'?`pointed to ${w.map(k=>NAMES[k]).join(' and ')} when asked when to take it`:S.issue;
+ const fix=ph('fix');
+ return `${bar('Check understanding','Teach-back · Amlodipine 5 mg')}
+<div class="stack">
+ <div class="dark"><p class="eyebrow">Turn the screen to ${p.him}</p><div style="margin-top:10px">${phrase(ph('ask'),'on-dark')}</div>${gl(ph('ask'))}
+  <div style="margin-top:12px"><button class="pill" data-say="${ph('ask').zh}" data-d="${D()}" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.4)">${ic('speaker')} Hear it</button></div></div>
+ <div class="card"><p class="eyebrow">${p.He} points · app checks the prescription</p>
+  <div class="grid3" style="margin-top:12px">${PICKS.slice(0,3).map(pk).join('')}</div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">${PICKS.slice(3).map(pk).join('')}</div></div>
+ ${v==='good'?`<div class="res good"><h3>✓ Got it all: morning, after food, 1 pill</h3><p>Matches the prescription. Filled in for you: <b>Amlodipine 5 mg · teach-back passed · 10:42</b></p><button class="btn sec" style="margin-top:12px;height:50px;font-size:16.5px" data-act="family">Leave a note</button></div>`:
+ v==='part'?`<div class="res part"><h3>Partly: just one thing to fix. You can do this.</h3><p>${okk.length?cap(okk.map(k=>NAMES[k]).join(' and '))+(okk.length>1?' are':' is')+' right. ':''}${w.length?`${p.He} pointed to <b>${w.map(k=>NAMES[k]).join(', ')}</b>. `:''}Re-explain only that part:</p>
+   <div class="inner"><div class="prow2"><div>${phrase(fix,'sm')}${gl(fix,' · point at the bowl')}</div>${hear(fix.zh,false)}</div></div>
+   <button class="btn pri" style="margin-top:12px;height:50px;font-size:16.5px" data-act="again">Ask ${p.him} to point again · try 1 of 2</button></div>`:
+ v==='bad'?`<div class="res bad"><h3>Not yet${w.length?`: ${p.he} pointed to ${w.map(k=>NAMES[k]).join(' and ')}`:''}</h3><p>The basics didn't land. That isn't your fault or ${p.hers}. Try once more, slowly, with the full-screen pictures. If it still doesn't land, get a speaker.</p>
+   <div class="inner" style="font-size:14.5px;line-height:1.45"><b style="color:var(--bad)">Saved automatically:</b> Not understood · 10:42. Shows on handover and holds the first dose until someone confirms ${p.he} understands.</div></div>`:
+ `<div class="res part"><h3>Waiting for ${p.him} to point</h3><p>Tap the pictures ${p.he} points to.</p></div>`}
+ <div class="markbox"><div class="muted sm" style="font-weight:600">${p.He} didn't point? Mark it yourself</div>
+  <div class="marks3"><button class="mk3 g" data-mark="good" aria-pressed="${v==='good'}">${I.check}Got it</button><button class="mk3 p" data-mark="part" aria-pressed="${v==='part'}">${I.half}Partly</button><button class="mk3 b" data-mark="bad" aria-pressed="${v==='bad'}">${I.x}Not yet</button></div></div>
+ ${sayDiff()}
+ ${v==='good'?`<button class="btn pri" data-go="done">Log &amp; done</button>`:v==='bad'?`<div class="two"><button class="btn sec" data-go="show">Try again · 1 of 2</button><button class="btn warm" data-go="help">Get a speaker</button></div>`:v==='part'?`<button class="btn pri" data-go="review">Log &amp; flag for handover</button>`:''}
+</div>`};
+
+V.help=()=>{const p=P(),d=S.helpD||D(),hs=HELP[d];
+ return `${bar('Get help',`For ${p.short} · ${loc(p)}`)}
+<div class="stack">
+ <div class="fchips">${['Cantonese','Teochew','Hokkien'].map(x=>`<button class="fchip" data-help="${x}" aria-pressed="${d===x}">${x}</button>`).join('')}</div>
+ <div class="avail"><b style="color:var(--ink);font-weight:600">On shift</b><span><i class="dot on"></i>Available</span><span><i class="dot off"></i>Busy</span></div>
+ ${hs.map((h,i)=>i===0?`<div class="card hl"><div class="person">${statusAv(h)}<div><h3>${h.n}</h3><div class="r">${h.r}</div><div class="${h.on?'ok-t':'warn-t'}">${h.s}</div></div></div>
+  <div style="display:flex;gap:10px;margin-top:14px"><button class="btn pri" style="flex:1;height:50px;font-size:17px" data-act="request" data-d="${d}">Request at bedside</button><button class="ic" style="width:50px;height:50px;border-radius:14px" aria-label="Call ${h.n}">${I.phone}</button></div>
+  <button class="btn sec" style="margin-top:10px;height:50px;font-size:17px" data-act="coach">Ask ${h.sh.startsWith('SN')?'her':'them'} to coach me first</button>
+  <div class="muted sm" style="margin-top:10px">Coaching: 2 min at the station. ${h.sh} listens to you say when to take the pill, and gives tips.</div></div>`:
+  `<div class="card"><div class="person">${statusAv(h,'c')}<div><h3>${h.n}</h3><div class="r">${h.r}</div><div class="${h.on?'ok-t':'warn-t'}">${h.s}</div></div></div></div>`).join('')}
+ <div class="tipbox"><div style="display:flex;gap:10px;align-items:center;color:var(--brown)"><span style="width:24px">${I.book}</span><b style="font-size:19px">Pass it on</b></div><p style="font-size:15.5px">${d} tips your team has learned, from colleagues and from patients.</p>
+  <div class="stack" style="gap:8px;margin-top:12px">${TIPS[d].map(([a,b])=>`<div class="tipcard">${a}<small>${b}</small></div>`).join('')}</div>
+  <button class="btn warm" style="margin-top:12px;height:50px;font-size:17px" data-pb="${d}">Open team phrasebook</button></div>
+</div>`};
+
+V.coming=()=>{const p=P(),d=S.helpD||D(),h=HELP[d][0],w=PH[d].wait;
+ const knows=S.issue?`Amlodipine 5 mg. ${p.short} ${S.issue}.`:`Amlodipine 5 mg is new. ${p.short} has not been taught yet.`;
+ return `${bar(`${h.sh} is coming`,`For ${p.short} · ${loc(p)}`)}
+<div class="stack">
+ <div class="res good" style="display:flex;gap:14px;align-items:center">${statusAv(h)}<div><h3 style="margin:0">Accepted · about ${d==='Teochew'?'15':'5'} min</h3><p class="muted" style="font-size:14.5px">${h.sh} has been sent: ${knows}</p></div></div>
+ <div class="card hl"><p class="eyebrow or">While you wait · tell <span class="zh">${p.call}</span></p><div style="margin-top:10px">${phrase(w)}</div><div style="margin-top:10px">${usedLegend(w)}</div>${gl(w)}<div style="margin-top:12px">${hear(w.zh,true,d)}</div></div>
+ <div class="card"><p class="eyebrow">When ${h.sh} arrives</p><ol style="margin:10px 0 0;padding-left:22px;font-size:16px;line-height:1.55"><li>${h.sh} explains when to take the pill. You listen in.</li><li>You do the teach-back yourself, so <span class="zh">${p.call}</span> knows you too.</li><li>Ask for one tip for next time. Tap to save it.</li></ol></div>
+ <button class="btn pri" data-go="check">${h.sh} is here · go to teach-back</button>
+ <button class="btn sec" data-act="back">Cancel request</button>
+</div>`};
+
+V.done=()=>{const p=P();return `<div class="donehero"><div class="topgap"></div><div style="font-size:13px;letter-spacing:1.4px;font-weight:700;opacity:.85">${loc(p).toUpperCase()} · DONE FOR NOW</div><h1>${p.short} is all set</h1><div style="opacity:.92">Everything below went into ${p.his} notes. Nothing to type.</div></div>
+<div class="stack">
+ <div class="card" style="padding:4px 16px">${[[`Greeted ${p.him} in ${p.d}`,'10:31'],symTxt()?['Symptoms saved',`${symTxt()} · 10:35`]:['Symptoms','Not asked this visit'],['Amlodipine 5 mg explained','Teach-back passed · 10:42'],[`Note left for ${p.his} ${p.family}`,`Ready for the ${p.visit} visit`]].map(([a,b])=>`<div class="check-li"><span style="width:22px;color:var(--good);flex:none">${I.check}</span><div><b>${a}</b><div>${b}</div></div></div>`).join('')}
+  ${S.save==='saved'?`<div class="check-li"><span style="width:22px;color:var(--orange);flex:none">${I.heart}</span><div><b>1 word saved for review</b><div><span class="zh">${S.word.zh}</span> · from <span class="zh">${p.call}</span> · checked at handover</div></div></div>`:''}</div>
+ <div class="tipbox"><p class="eyebrow" style="color:var(--brown)">You said it yourself today</p><p>3 ${p.d} phrases at the bedside. No speaker was needed this time.</p></div>
+ <button class="btn pri" data-act="topatient">Back to ${p.short}'s page</button>
+ <button class="btn sec" data-act="home">Back to my patients</button>
+</div>`};
+
+V.review=()=>{const w=S.save==='saved'&&D()==='Cantonese'?S.word:{zh:'食完飯',en:'after eating',d:'Cantonese',s:PH.Cantonese.fix.s};
+ return `${bar('Phrases to review','For SN Wong · handover 14:30 · 2 items')}
+<div class="stack">
+ <div class="tipbox" style="font-size:15.5px;line-height:1.5">During the shift, nurses saved words that patients said differently. You speak Cantonese, so you decide what the team phrasebook should teach.</div>
+ <div class="card"><div class="sm"><b>Hui Min</b> <span class="muted">· Mdm Lim, Bed 03 · while re-explaining when to take the pill · 10:41</span></div>
+  <p class="eyebrow" style="margin-top:12px">Phrasebook teaches</p><div class="prow2" style="margin-top:6px;flex-wrap:wrap"><div>${w.s?phrase({d:'Cantonese',s:w.s},'sm'):''}${gl(w)}</div><button class="pill">${ic('play',16)} Hear <span class="zh">婆婆</span> · 0:04</button></div>
+  <p class="eyebrow" style="margin:14px 0 8px">What should happen?</p><div class="stack" style="gap:8px">
+  ${[['right','check','Phrasebook is right','Send Hui Min a tip on how to say it'],['fix','book','Fix the phrasebook','Every nurse gets the new version'],['her','heart','Just how 婆婆 says it','Add to her heritage notes only']].map(([k,i,a,b])=>`<button class="opt" data-rev="a:${k}" aria-pressed="${S.review.a===k}"><span style="width:22px;color:var(--teal);flex:none">${I[i]}</span><span><b>${a}</b><span>${b}</span></span></button>`).join('')}</div></div>
+ <div class="card"><div class="sm"><b>SN Lee</b> <span class="muted">· Mr Chan, Bed 09 · asking about symptoms · no clip</span></div>
+  <p class="eyebrow" style="margin-top:12px">Phrasebook teaches</p><div style="margin-top:6px">${phrase({d:'Cantonese',s:[['tsum',4],['yat',6,1]]},'sm')}</div><div class="gloss"><span class="zh">尋日</span><span class="en">yesterday. He didn't recognise it and said <span class="zh">琴日</span> instead.</span></div>
+  <p class="eyebrow" style="margin:14px 0 8px">What should happen?</p><div class="stack" style="gap:8px">
+  ${[['add','book','Add 琴日 as another way to say it','Both show in the phrasebook'],['skip','x','Skip','Nothing changes']].map(([k,i,a,b])=>`<button class="opt" data-rev="b:${k}" aria-pressed="${S.review.b===k}"><span style="width:22px;color:var(--teal);flex:none">${I[i]}</span><span><b>${a}</b><span>${b}</span></span></button>`).join('')}</div></div>
+ <button class="btn pri" data-act="home">Done · ${[S.review.a,S.review.b].filter(Boolean).length} reviewed</button>
+</div>`};
+
+function ncard(n){return `<div class="ncard ${n.st==='p'?'prac':''}"><span class="dtag">${n.d}</span><div class="prow2"><div style="min-width:0">${phrase(n.p,'sm')}${gl(n.p)}</div>${hear(n.p.zh,false,n.p.d)}</div>${n.note?`<div class="nnote">${n.note}</div>`:''}
+ <div class="nmeta"><span>${n.src}</span>${n.st==='p'?`<span style="display:flex;gap:6px"><button class="mini" data-act="rec">${ic('mic',14)}Practise</button><button class="mini g" data-learn="${NOTES.indexOf(n)}">${ic('check',14)}Learnt</button></span>`:`<span style="color:var(--good);font-weight:600;display:flex;gap:4px;align-items:center">${ic('check',15)}Learnt</span>`}</div></div>`}
+V.notes=()=>{const q=S.q['q-notes']||'';const list=NOTES.filter(n=>(S.notesF==='All'||n.d===S.notesF)&&match(q,phText(n.p),n.src,strip(n.note||''),n.d));
+ return `<div class="topgap"></div><div class="lgline" style="margin:8px 0 2px"><div><h1 style="font-size:28px;margin:0;font-weight:800;color:var(--ink)">My notes</h1><div class="muted" style="font-size:15px;margin-top:2px">Words from your shifts, to practise later</div></div><button class="ic" style="background:var(--teal);color:#fff;border:0" aria-label="Add a word" data-act="add">${I.plus}</button></div>
+<div style="margin-top:14px">${searchBox('q-notes','Search a word, phrase or patient')}</div>
+<div class="fchips" style="margin-top:12px">${['All','Cantonese','Hokkien','Teochew'].map(d=>`<button class="fchip" data-nf="${d}" aria-pressed="${S.notesF===d}">${d}</button>`).join('')}</div>
+<div class="lgline" style="margin-top:12px"><span>${list.length} words · ${list.filter(n=>n.st==='p').length} to practise</span>${S.notesF!=='All'?`<button class="pill no-lap" data-tones="${S.notesF}" style="height:36px">${ic('info',16)} ${S.notesF} tones</button>`:''}</div>
+${list.length?`<div class="sechead" style="margin-top:18px"><p class="eyebrow">To practise</p><span class="muted sm">Newest first</span></div><div class="stack split2">${list.filter(n=>n.st==='p').map(ncard).join('')||'<div class="empty">Nothing to practise here.</div>'}</div>
+<div class="sechead"><p class="eyebrow">Learnt on the job</p><span class="muted sm">Newest first</span></div><div class="stack split2">${list.filter(n=>n.st==='l').map(ncard).join('')||'<div class="empty">Nothing learnt here yet.</div>'}</div>`:
+`<div class="card empty" style="margin-top:18px"><b style="font-size:17px;color:var(--ink)">${q?'No notes match your search':'No words here yet'}</b><div style="margin-top:6px">${q?'Try English, Chinese, or how the word sounds.':'Tap "Tap to save" at a bedside, or the + button, to add one.'}</div></div>`}`};
+
+V.phrasebook=()=>{const q=S.q['q-pb']||'';const d=S.pbF;
+ const list=allPhrases().filter(p=>(d==='All'||p.d===d)&&match(q,phText(p)));
+ const cats=['Greetings','Pain and symptoms','Medicine','Checking understanding','Getting help'];
+ return `<div class="topgap"></div><h1 style="font-size:28px;margin:8px 0 2px">Team phrasebook</h1><div class="muted" style="font-size:15px">Checked by the dialect speakers in your team</div>
+<div style="margin-top:14px">${searchBox('q-pb','Search a word or phrase')}</div>
+<div class="fchips" style="margin-top:12px">${['All','Cantonese','Hokkien','Teochew'].map(x=>`<button class="fchip" data-pbf="${x}" aria-pressed="${d===x}">${x}</button>`).join('')}</div>
+${d!=='All'?`<div class="lgline" style="margin-top:12px"><span>${list.length} phrases</span><button class="pill no-lap" data-tones="${d}" style="height:36px">${ic('info',16)} ${d} tones</button></div>`:`<div class="muted sm" style="margin-top:12px">${list.length} phrases</div>`}
+${list.length?cats.map(c=>{const xs=list.filter(p=>p.cat===c);return xs.length?`<div class="res-h">${c.toUpperCase()}</div><div class="stack split2">${xs.map(p=>phCard(p,' ')).join('')}</div>`:''}).join(''):`<div class="card empty" style="margin-top:16px"><b style="color:var(--ink)">No phrases match "${esc(q)}"</b><div style="margin-top:6px">Try English, Chinese, or how it sounds${d!=='All'?', or switch to All':''}.</div></div>`}`};
+
+V.me=()=>{const m=S.me,e=S.editMe;
+ const fld=(k,l)=>`<div class="field"><label for="me-${k}">${l}</label>${e?`<input id="me-${k}" data-mef="${k}" value="${esc(m[k])}">`:`<div class="v">${esc(m[k])}</div>`}</div>`;
+ return `<div class="topgap"></div><div style="display:flex;gap:14px;align-items:center;margin:8px 0 18px"><div class="av">HM</div><div><h1 style="font-size:24px;margin:0;color:var(--ink)">${esc(m.name)}</h1><div class="muted">${esc(m.role)} · ${esc(m.dept)}</div></div></div>
+<div class="stack">
+ <div class="card"><div class="lgline"><p class="eyebrow">Where you work</p><button class="mini ${e?'g':''}" data-act="editme">${e?ic('check',14)+'Save':ic('edit',14)+'Edit'}</button></div>
+  ${fld('centre','HEALTHCARE CENTRE')}${fld('dept','DEPARTMENT')}${fld('role','ROLE')}
+  <div class="field"><label>WARDS OR CLINICS YOU COVER</label><div class="fchips" style="margin-top:4px">${m.wards.map((w,i)=>`<span class="wchip">${esc(w)}${e?`<button data-delward="${i}" aria-label="Remove ${esc(w)}">${I.x}</button>`:'<span style="width:8px"></span>'}</span>`).join('')}</div>
+  ${e?`<div style="display:flex;gap:8px;margin-top:8px"><input id="me-newward" placeholder="Add a ward or clinic" style="flex:1;height:42px;border:1.5px solid var(--teal-line);border-radius:10px;padding:0 12px;font:inherit;font-size:16px"><button class="pill" data-act="addward">${ic('plus',16)} Add</button></div>`:''}</div>
+  ${e?'':'<div class="muted sm" style="margin-top:6px">These change often. Tap Edit when you move to another ward or clinic.</div>'}</div>
+ <div class="card"><div class="lgline"><p class="eyebrow">App language</p><button class="mini" data-act="lang">${S.langOpen?'Done':'Change'}</button></div>
+  ${S.langOpen?`<div class="muted sm" style="margin-top:4px">Buttons and instructions show in this language. Patient phrases stay in their dialect.</div><div role="radiogroup" aria-label="App language">${LANGS.map(([a,b],i)=>`<button class="lang" role="radio" aria-checked="${m.lang===i}" data-lang="${i}"><span>${a}<small>${b}</small></span><span class="radio"></span></button>`).join('')}</div>`:
+  `<div class="lang" style="border:0;padding-bottom:2px"><span>${LANGS[m.lang][0]}<small>${LANGS[m.lang][1]}</small></span></div>`}</div>
+ <div class="card"><p class="eyebrow">Languages you speak</p><div class="fchips" style="margin-top:10px">${m.dialects.map(x=>`<span class="fchip" style="display:inline-flex;align-items:center;background:var(--teal);border-color:var(--teal);color:#fff">${x}</span>`).join('')}<button class="fchip" data-act="adddialect">+ Add</button></div></div>
+ <button class="card" style="text-align:left" data-go="review"><div class="lgline"><span><b style="font-size:17px;color:var(--ink)">Phrases to review</b><br><span class="muted">For dialect speakers at handover · 2 items</span></span><span style="width:22px;color:var(--muted)">${I.chev}</span></div></button>
+</div>`};
+
+/* laptop context panel and tone sheet */
+function toneRows(d){return Object.entries(TS[d]).map(([n,[a,b,path,[w,z,e]]])=>`<div class="trow"><span class="tn" style="background:${SHAPE_COL[a]}">${n}</span><div class="tl"><b style="color:${SHAPE_COL[a]}">${a}</b><div>${b}</div></div><div class="tex">${mark(d,n).replace('<svg','<svg width="46"')}<b>${w}</b><small><span class="zh">${z}</span> ${e}</small></div><button class="ic" style="width:38px;height:38px" data-say="${z}" data-d="${d}" aria-label="Hear ${w}">${I.speaker}</button></div>`).join('')}
+const toneHead=d=>`<div><b style="font-size:20px">${d} tones</b> ${d!=='Cantonese'?'<span class="draft">Draft · check with a speaker</span>':''}<div class="muted" style="font-size:14px;margin-top:3px">${Object.keys(TS[d]).length} tones. The line shows where your voice goes.</div></div>`;
+function ctx(){const s=S.screen,p=P();
+ if(['patient','symptoms','practise','bedside','check','coming','show','help'].includes(s))return `<div class="card" style="margin-bottom:16px"><div class="person"><div class="bed" style="width:48px;height:48px;font-size:19px">${p.bed}</div><div><h3 style="font-size:17px">${p.name}, ${p.age}</h3><div class="r">${p.chips.join(' · ')}</div></div></div><div class="nnote" style="margin-top:12px">Call ${p.him} <span class="zh">${p.call}</span> (${p.callR}).</div></div><div class="card">${toneHead(D())}${toneRows(D())}<div class="nnote" style="margin-top:10px">${TNOTE[D()]}</div></div>`;
+ const d=s==='notes'?S.notesF:s==='phrasebook'?S.pbF:null;
+ if(d&&d!=='All')return `<div class="card">${toneHead(d)}${toneRows(d)}<div class="nnote" style="margin-top:10px">${TNOTE[d]}</div></div>`;
+ return ''}
+const sheet=d=>`<div class="sheet-wrap"><div class="dim" data-act="close"></div><div class="sheet" role="dialog" aria-label="${d} tones"><div class="grab"></div><div class="lgline" style="align-items:flex-start;color:var(--ink)">${toneHead(d)}<button class="x" data-act="close" aria-label="Close">${I.x}</button></div>${toneRows(d)}<div class="nnote" style="margin-top:12px">${TNOTE[d]}</div></div></div>`;
+
+/* ================= render ================= */
+const app=document.getElementById('app');
+function render(top){const cur=tabOf(S.screen);const c=ctx();
+ const tabs=TABS.map(([k,l,i])=>`<button class="tab" data-tab="${k}" ${cur===k?'aria-current="page"':''}>${I[i]}<span>${l}</span></button>`).join('');
+ const sc=app.querySelector('.scroll');const keep=top?0:(sc?sc.scrollTop:0);
+ const fa=document.activeElement;const fid=fa&&fa.id&&app.contains(fa)?fa.id:null;const caret=fid&&fa.selectionStart!=null?fa.selectionStart:null;
+ app.innerHTML=`<div class="shell"><nav class="side" aria-label="Main"><div class="logo"><i>${esc((S.me.wards[0]||'').replace(/^Ward\s*/i,'')).slice(0,3)}</i><span>${esc(S.me.wards[0]||'')}</span></div>${tabs}<div class="who"><div class="av">HM</div><div><b>${esc(S.me.name)}</b><span>${esc(S.me.centre)}</span></div></div></nav>
+ <div class="main"><main class="scroll" id="scroll"><div class="col">${V[S.screen]()}</div></main><aside class="ctx ${c?'':'none'}" aria-label="Context">${c}</aside></div>
+ <nav class="tabbar" aria-label="Main">${tabs}</nav></div>${S.sheet?sheet(S.sheet):''}`;
+ app.querySelector('.scroll').scrollTop=keep;
+ if(fid){const el=document.getElementById(fid);if(el){el.focus();if(caret!=null)try{el.setSelectionRange(caret,caret)}catch(e){}}}}
+
+app.addEventListener('click',e=>{const pr=e.target.closest('[data-prsel]');if(pr&&S.prSel!==+pr.dataset.prsel){S.prSel=+pr.dataset.prsel;render()}
+ const b=e.target.closest('button,[data-act]');if(!b)return;const d=b.dataset;
+ if(d.say){speak(d.say,d.d||D());return}
+ if(d.tab){S.hist=[];S.q={};go(d.tab,false);return}
+ if(d.pt){S.pid=d.pt;if(!d.then)S.picked=d.pt;S.q['q-home']='';go(d.then||'patient');return}
+ if(d.go){go(d.go);return}
+ if(d.help){S.helpD=d.help;if(S.screen!=='help'){S.hist.push(S.screen);S.screen='help'}render(true);return}
+ if(d.pb){S.pbF=d.pb;go('phrasebook');return}
+ if(d.pbf){S.pbF=d.pbf;render();return}
+ if(d.tones){if(app.clientWidth>=1100&&['notes','phrasebook','patient','symptoms','practise','bedside','coming'].includes(S.screen)){toast('Tone guide is on the right');return}S.sheet=d.tones;render();return}
+ if(d.body){S.body=d.body;render()}
+ if(d.pain){S.pain=+d.pain;render()}
+ if(d.since){S.since=d.since;render()}
+ if(d.pick){S.mark=null;S.picks[d.pick]=!S.picks[d.pick];const pairs=[['one','two'],['before','after']];for(const[a,c]of pairs){if(d.pick===a&&S.picks[a])S.picks[c]=0;if(d.pick===c&&S.picks[c])S.picks[a]=0}render()}
+ if(d.mark){S.mark=d.mark;render()}
+ if(d.word){const p=P();const ctxP=S.screen==='check'?ph('ask'):ph('line2');const opts=[ph('p1'),ph('p2'),ph('p3'),{zh:p.call,en:`what we call ${p.him}`,d:D(),s:p.greet.s.slice(0,2)}];
+  S.word=d.word==='whole'?{...ctxP,whole:1}:opts[+d.word];S.save='saved';render();toast('Saved for handover review')}
+ if(d.nf){S.notesF=d.nf;render()}
+ if(d.rev){const[k,v]=d.rev.split(':');S.review[k]=v;render()}
+ if(d.lang){S.me.lang=+d.lang;S.langOpen=false;render();toast(`App language: ${LANGS[S.me.lang][0]}`)}
+ if(d.learn){const n=NOTES[+d.learn];n.st='l';n.src='Learnt · just now';delete n.note;render();toast('Moved to Learnt')}
+ if(d.delward){S.me.wards.splice(+d.delward,1);render()}
+ const a=d.act;if(!a)return;
+ if(a==='back')back();
+ if(a==='home'){S.hist=[];go('home',false)}
+ if(a==='close'){S.sheet=null;render()}
+ if(a==='savediff'){S.save='pick';render()}
+ if(a==='undo'){S.save='idle';S.word=null;render()}
+ if(a==='again'){S.mark=null;S.picks={morning:1,after:1,one:1};render()}
+ if(a==='request'){S.helpD=d.d;go('coming')}
+ if(a==='savesym'){toast(`Symptoms saved to ${P().his} notes`);setTimeout(()=>back(),700)}
+ if(a==='rec')toast('Recording works in the real app');
+ if(a==='family')toast(`Note saved for the ${P().visit} visit`);
+ if(a==='coach')toast('Coaching request sent');
+ if(a==='add')toast('Add a word: type it or record it');
+ if(a==='tamil')toast('Mr Ramasamy\'s family translates. Tamil phrases are not in this prototype.');
+ if(a==='editme'){if(S.editMe){for(const el of app.querySelectorAll('[data-mef]'))S.me[el.dataset.mef]=el.value.trim()||S.me[el.dataset.mef];toast('Work details saved')}S.editMe=!S.editMe;render()}
+ if(a==='addward'){const el=document.getElementById('me-newward');const v=el&&el.value.trim();if(v){for(const f of app.querySelectorAll('[data-mef]'))S.me[f.dataset.mef]=f.value;S.me.wards.push(v);render()}}
+ if(a==='lang'){S.langOpen=!S.langOpen;render()}
+ if(a==='adddialect')toast('Add a language you speak');
+});
+app.addEventListener('input',e=>{const id=e.target.id;if(['q-home','q-notes','q-pb'].includes(id)){S.q[id]=e.target.value;render()}});
+app.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='me-newward'){e.preventDefault();app.querySelector('[data-act="addward"]').click()}});
+
+/* ================= preview sizes ================= */
+const SIZES={phone:[390,844],tablet:[820,1180],laptop:[1440,900]};
+let size='phone';
+const dev=document.getElementById('device');
+function layout(){const staged=window.innerWidth>=600;document.body.classList.toggle('staged',staged);
+ if(!staged){dev.className='device';dev.style.cssText='';return}
+ const[w,h]=SIZES[size];dev.className='device '+size;dev.style.width=w+'px';dev.style.height=h+'px';
+ const tb=document.querySelector('.toolbar').offsetHeight;const avW=window.innerWidth-56,avH=window.innerHeight-tb-40;
+ const s=Math.min(1,avW/w,avH/h);dev.style.transform=`scale(${s})`;document.getElementById('stage').style.height=(h*s+28)+'px';
+ document.getElementById('sizeinfo').textContent=`${w} × ${h}${s<1?` · shown at ${Math.round(s*100)}%`:''}`;}
+document.getElementById('sizes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;size=b.dataset.size;document.querySelectorAll('#sizes button').forEach(x=>x.setAttribute('aria-pressed',x===b));layout();render()});
+window.addEventListener('resize',layout);
+const h0=(location.hash||'').slice(1).split('-');if(V[h0[0]])S.screen=h0[0];if(PT[h0[1]])S.pid=h0[1];S.helpD=D();
+try{const z=new URLSearchParams(location.search).get('size');if(SIZES[z])size=z}catch(e){}
+document.querySelectorAll('#sizes button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.size===size));
+layout();render(true);
+
+</script>
+<script>
+/* ===== Round 3: one job per page. Screens are split; the tested order is kept. ===== */
+const steps=(n,of,label)=>`<div class="stepper"><div class="dots">${Array.from({length:of},(_,i)=>`<i class="${i<n?'on':''}"></i>`).join('')}</div><span>Step ${n} of ${of} · ${label}</span></div>`;
+const toneLink=d=>`<button class="linkbtn" style="margin-top:12px" data-tones="${d||D()}">${I.info} What do the lines mean?</button>`;
+const firstSentence=s=>{const t=strip(s);const i=t.indexOf('. ');return i>0?t.slice(0,i+1):t};
+
+function go(s,push=true){
+ if(s==='check'&&!['check','result','saveword'].includes(S.screen)){S.picks=S.screen==='say2'?{morning:1,before:1,one:1}:S.screen==='coming'?{morning:1,after:1,one:1}:{};S.mark=null;S.retry=0;S.save='idle'}
+ if(s==='practise')S.prSel=null;
+ if(s==='help'&&!['coming'].includes(S.screen))S.helpD=D();
+ if(push&&S.screen!==s)S.hist.push(S.screen);S.screen=s;S.sheet=null;render(true)}
+
+/* ---- home: greeting, search, reminder, patients (coverage moved to Get help) ---- */
+V.home=()=>{const q=S.q['q-home']||'';const me=S.me;
+ const pts=[...Object.values(PT).map(p=>({b:p.bed,n:`${p.name}, ${p.age}`,d:p.d,todo:'To do: explain new BP medication',go:p.id})),{b:'11',n:'Mr Ramasamy S., 74',d:'Tamil',ex:'Family translates'}];
+ const row=x=>`<button class="card ${x.go&&x.go===S.picked&&!q?'hl':''}" ${x.go?`data-pt="${x.go}"`:'data-act="tamil"'}><div class="prow"><div class="bed">${x.b}</div><div style="flex:1;min-width:0"><h3>${x.n}</h3><span class="tag ${x.d==='Tamil'?'ta':''}">${x.d}</span>${x.ex?` <span class="muted" style="font-size:15px">${x.ex}</span>`:''}${x.todo?`<div class="muted" style="margin-top:6px;font-size:15px">${x.todo}</div>`:''}</div><span class="muted" style="width:22px">${I.chev}</span></div></button>`;
+ const head=`<div class="hero"><div class="topgap"></div>
+ <div class="who"><div><small>${esc(me.wards[0]||'').toUpperCase()} · MORNING SHIFT</small><h1>Good morning, ${esc(me.name)}</h1><p>You speak: English · Mandarin · <b>Hokkien</b></p></div><button class="av" data-tab="me" aria-label="Me">HM</button></div>
+ ${searchBox('q-home','Search a patient, word or phrase')}</div>`;
+ if(q.trim()){const pr=pts.filter(x=>match(q,x.b,x.n,x.d));const phs=allPhrases().filter(p=>match(q,phText(p),p.d));const ns=NOTES.filter(n=>match(q,phText(n.p),n.src,strip(n.note||'')));
+  return head+`<div class="res-h">PATIENTS · ${pr.length}</div><div class="plist">${pr.map(row).join('')||'<div class="empty">No patients match.</div>'}</div>
+  <div class="res-h">PHRASES · ${phs.length}</div><div class="stack">${phs.slice(0,8).map(p=>phCard(p)).join('')||'<div class="empty">No phrases match. Try English, Chinese or how it sounds.</div>'}</div>
+  <div class="res-h">MY NOTES · ${ns.length}</div><div class="stack">${ns.map(ncard).join('')||'<div class="empty">No notes match.</div>'}</div>`}
+ return head+`<div style="margin-top:16px"><button class="remind" data-pt="lim" data-then="practise"><span style="color:var(--orange)">${ic('mic',26)}</span><span style="text-align:left"><b>2 phrases to practise before 10:30</b><span class="muted">For Mdm Lim's new BP pill · 3 min</span></span></button></div>
+<div class="sechead"><h2>My patients</h2><span class="muted">4 assigned</span></div>
+<div class="plist">${pts.map(row).join('')}</div>`};
+
+/* ---- patient: greet + one-line about + what to say ---- */
+V.patient=()=>{const p=P();return `
+<div class="phero"><div class="topgap"></div><button class="back" data-act="back" aria-label="Back" style="color:#fff">${I.back}</button>
+ <div style="font-size:13px;letter-spacing:1.4px;font-weight:700;opacity:.85;margin-top:14px">${loc(p).toUpperCase()} · ${esc(S.me.wards[0]).toUpperCase()}</div><h1>${p.name}, ${p.age}</h1>
+ <div class="chips">${p.chips.map((c,i)=>`<span class="chip ${i?'':'k'}">${c}</span>`).join('')}</div></div>
+<div class="stack">
+ <div class="card hl"><p class="eyebrow or">Greet ${p.him} yourself</p><div style="margin-top:10px">${phrase(p.greet)}</div>${gl(p.greet)}
+  <div class="two" style="margin-top:14px">${hear(p.greet.zh)}<button class="pill" style="border-color:var(--teal)" data-go="practise">${ic('mic')} Practise</button></div>${toneLink(p.d)}</div>
+ <button class="card aboutc" data-go="about"><div class="lgline"><p class="eyebrow" style="color:var(--brown)">About ${p.him}</p><span class="muted" style="width:20px">${I.chev}</span></div><p class="one">${firstSentence(p.notes)}</p></button>
+ <h2 style="font-size:21px;margin:10px 0 0">What do you need to say?</h2>
+ <div class="tiles">
+  <button class="tile" data-go="symptoms"><span style="color:var(--teal);width:26px">${I.heart}</span><b>Ask about symptoms</b></button>
+  <button class="tile" data-go="practise"><span style="color:var(--teal);width:26px">${I.pill}</span><b>Explain treatment</b></button>
+  <button class="tile warm" data-go="help"><span style="color:var(--brown);width:26px">${I.person}</span><b>Explain diagnosis</b></button>
+  <button class="tile" data-go="check"><span style="color:var(--teal);width:26px">${I.check}</span><b>Check ${p.he} understood</b></button>
+ </div>
+ <button class="btn sec" data-go="help">${ic('person',24)} Get a ${p.d} speaker</button>
+</div>`};
+
+V.about=()=>{const p=P();const mine=NOTES.filter(n=>(n.src||'').includes(p.short)||(n.src||'').includes('Bed '+p.bed));
+ return `${bar(`About ${p.short}`,`${loc(p)} · ${p.d}`)}
+<div class="stack">
+ <div class="notes-box"><p class="eyebrow" style="color:var(--brown)">Heritage notes</p><p>${p.notes}</p><div class="signoff">Added by <b>${p.by}</b><br>${p.corr}</div></div>
+ <div class="card"><p class="eyebrow">Call ${p.him}</p><div class="prow2" style="margin-top:8px"><div><span class="zh" style="font-size:26px;font-weight:700">${p.call}</span><div class="muted">${p.callR}</div></div>${hear(p.call,false)}</div></div>
+ ${mine.length?`<p class="eyebrow" style="margin-top:6px">Words from ${p.his} visits</p>${mine.map(ncard).join('')}`:''}
+</div>`};
+
+/* ---- symptoms: three short steps ---- */
+V.symptoms=()=>{const p=P();return `${bar('Ask about symptoms',`${p.short} · ${loc(p)}`)}
+${steps(1,3,'Where')}
+<div class="stack">
+ <div class="card hl">${phrase(ph('where'))}${gl(ph('where'))}
+  <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">${hear(ph('where').zh)}</div>${toneLink()}</div>
+ <p class="eyebrow">${p.He} taps where it hurts</p>
+ <div class="grid3 body">${BODY.map(([k,z,e])=>`<button class="choice" data-body="${k}" aria-pressed="${S.body===k}"><span class="zh">${z}</span><span>${e}</span></button>`).join('')}</div>
+ <button class="btn pri" data-go="sym2">Next: how much</button>
+</div>`};
+V.sym2=()=>{const p=P(),L=LB[D()];return `${bar('Ask about symptoms',`${p.short} · ${loc(p)}`)}
+${steps(2,3,'How much')}
+<div class="stack">
+ <div class="card hl">${phrase(ph('much'))}${gl(ph('much'))}<div style="margin-top:12px">${hear(ph('much').zh)}</div>${toneLink()}</div>
+ <p class="eyebrow">${p.He} points to a number</p>
+ <div><div class="scale">${[0,1,2,3,4,5,6,7,8,9,10].map(n=>`<button data-pain="${n}" aria-pressed="${S.pain===n}">${n}</button>`).join('')}</div>
+ <div class="scale-ends"><span>0 <span class="zh">${L.p0}</span> no pain</span><span>10 <span class="zh">${L.p10}</span> unbearable</span></div></div>
+ <button class="btn pri" data-go="sym3">Next: since when</button>
+</div>`};
+V.sym3=()=>{const p=P(),L=LB[D()];return `${bar('Ask about symptoms',`${p.short} · ${loc(p)}`)}
+${steps(3,3,'Since when')}
+<div class="stack">
+ <div class="card hl">${phrase(ph('since'))}${gl(ph('since'))}<div style="margin-top:12px">${hear(ph('since').zh)}</div>${toneLink()}</div>
+ <p class="eyebrow">${p.He} points</p>
+ <div class="grid3">${[['t',L.today,'Today'],['y',L.yday,'Yesterday'],['d',L.days,'Days']].map(([k,z,e])=>`<button class="choice" data-since="${k}" aria-pressed="${S.since===k}"><span class="zh">${z}</span><span>${e}</span></button>`).join('')}</div>
+ <div><label class="fl" for="sym-note" style="margin-top:0">YOUR NOTE (OPTIONAL)</label><textarea id="sym-note" class="note" placeholder="Anything else you noticed?"></textarea></div>
+ <button class="btn pri" data-act="savesym3">${symTxt()?'Save: '+symTxt():'Save'}</button>
+</div>`};
+
+/* ---- bedside: two short steps ---- */
+V.bedside=()=>{const p=P();return `${bar('Say it at the bedside',`${p.short} · ${loc(p)}`)}
+${steps(1,2,"What it's for")}
+<div class="stack">
+ <div class="card"><div class="prow"><div class="bed" style="color:var(--teal)">${ic('pill',28)}</div><div><h3 style="margin:0;font-size:19px">Amlodipine 5 mg</h3><div class="muted">New · for high blood pressure</div></div></div></div>
+ <div class="card hl"><p class="eyebrow or">Say this first</p><div style="margin-top:10px">${phrase(ph('line1'))}</div>${gl(ph('line1'))}<div style="margin-top:12px">${hear(ph('line1').zh)}</div>${toneLink()}</div>
+ <button class="btn pri" data-go="say2">Next: when to take it</button>
+</div>`};
+V.say2=()=>{const p=P(),L=LB[D()];return `${bar('Say it at the bedside',`${p.short} · ${loc(p)}`)}
+${steps(2,2,'When to take it')}
+<div class="stack">
+ <div class="card hl"><p class="eyebrow or">Say this now</p><div style="margin-top:10px">${phrase(ph('line2'))}</div>${gl(ph('line2'))}<div style="margin-top:12px">${hear(ph('line2').zh)}</div>${toneLink()}</div>
+ <div><div class="rxhead" style="margin-top:0"><span class="rxt">PRESCRIPTION · TAKE 1 PILL</span><span class="muted sm">Point to each as you say it</span></div>
+ <div class="grid3"><div class="rx">${ic('sun',24)}<span class="zh">${L.morning}</span><span>Morning</span><span class="rxl yes">${ic('check',13)}Take</span></div><div class="rx">${ic('bowl',24)}<span class="zh">${L.showAfter}</span><span>After food</span><span class="rxl yes">${ic('check',13)}Take</span></div><div class="rx no">${ic('moon',24)}<span class="zh">${L.night}</span><span>Night</span><span class="rxl">${ic('x',13)}None</span></div></div></div>
+ <div><p class="eyebrow" style="margin-bottom:8px">Show ${p.him} the pictures on</p><div class="two"><button class="btn sec" style="height:50px;font-size:16px" data-act="totablet">${ic('tablet',20)} ${S.loc?'Room tablet':'Bedside tablet'}</button><button class="btn sec" style="height:50px;font-size:16px" data-go="show">${ic('eye',20)} My phone</button></div></div>
+ <button class="btn pri" data-go="check">Next: check ${p.he} understood</button>
+</div>`};
+
+/* ---- bedside tablet (patient-facing, synced) ---- */
+function kioskBody(on){const p=P(),L=LB[D()];
+ if(!on)return `<div class="kiosk idle"><div class="zh kgreet">${p.greet.zh}</div><div class="kname">Your nurse today</div><div class="kav">HM</div><div class="kn">Hui Min</div></div>`;
+ return `<div class="kiosk"><div class="ktitle">${ic('pill',40)}<span class="zh">降血壓藥</span></div>
+ <div class="kgrid"><div class="big"><span style="width:52px;flex:none">${I.sun}</span><div style="flex:1"><div class="zh">${L.morning}</div><span>morning</span></div><span class="bigl yes">${ic('check',26)}</span></div>
+ <div class="big"><span style="width:52px;flex:none">${I.bowl}</span><div style="flex:1"><div class="zh">${L.showAfter}</div><span>after eating</span></div><span class="bigl yes">${ic('check',26)}</span></div>
+ <div class="big"><span style="width:52px;flex:none">${I.pill}</span><div style="flex:1"><div class="zh">× 1 ${L.one}</div><span>one pill</span></div></div>
+ <div class="big off"><span style="width:52px;flex:none">${I.moon}</span><div style="flex:1"><div class="zh">${L.night}</div><span>night · none</span></div><span class="bigl">${ic('x',26)}</span></div></div></div>`}
+V.tablet=()=>{const p=P();return `${bar(S.loc?'Room tablet':'Bedside tablet',`${loc(p)} · synced with your phone`)}
+<div class="stack">
+ <div class="synced">${ic('check',16)} Showing on ${p.his} tablet now</div>
+ <div class="tabmock">${kioskBody(true)}</div>
+ <div class="muted sm" style="line-height:1.5">${p.short} sees this on the tablet ${S.loc?'on the desk':'by '+p.his+' bed'}. It goes back to the welcome screen when you leave.</div>
+ <button class="btn pri" data-act="back">Back to nurse view</button>
+</div>`};
+V.kiosk=()=>kioskBody(S.kioskOn);
+
+/* ---- check: she points; result on the next page ---- */
+V.check=()=>{const p=P();const any=Object.values(S.picks).some(Boolean);
+ return `${bar('Check understanding',`Teach-back · Amlodipine 5 mg${S.retry?' · try 2 of 2':''}`)}
+<div class="stack">
+ <div class="dark"><p class="eyebrow">Turn the screen to ${p.him}</p><div style="margin-top:10px">${phrase(ph('ask'),'on-dark')}</div>${gl(ph('ask'))}
+  <div style="margin-top:12px"><button class="pill" data-say="${ph('ask').zh}" data-d="${D()}" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.4)">${ic('speaker')} Hear it</button></div></div>
+ <div class="card"><p class="eyebrow">Tap the pictures ${p.he} points to</p>
+  <div class="grid3" style="margin-top:12px">${PICKS.slice(0,3).map(pk).join('')}</div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">${PICKS.slice(3).map(pk).join('')}</div></div>
+ <div class="markbox"><div class="muted sm" style="font-weight:600">${p.He} didn't point? Mark it yourself</div>
+  <div class="marks3"><button class="mk3 g" data-mk="good">${I.check}Got it</button><button class="mk3 p" data-mk="part">${I.half}Partly</button><button class="mk3 b" data-mk="bad">${I.x}Not yet</button></div></div>
+ <button class="btn pri" data-go="result" ${any?'':'disabled style="opacity:.45"'}>See the result</button>
+</div>`};
+V.result=()=>{const p=P(),v=S.mark||verdict();if(v==='none')return `${bar('Result','Teach-back · Amlodipine 5 mg')}<div class="stack"><div class="res part"><h3>No answer yet</h3><p>Go back and tap the pictures ${p.he} points to.</p></div><button class="btn pri" data-act="back">Back to the check</button></div>`;const w=Object.keys(S.picks).filter(k=>S.picks[k]&&!RIGHT[k]);const okk=['morning','after','one'].filter(k=>S.picks[k]);
+ S.issue=v==='part'?`mixed up ${w.map(k=>NAMES[k]).join(', ')||'one part'} when asked when to take it`:v==='bad'?`pointed to ${w.map(k=>NAMES[k]).join(' and ')||'the wrong pictures'} when asked when to take it`:S.issue;
+ const fix=ph('fix');
+ const saved=S.save==='saved'?`<div class="saved"><div class="lgline"><b style="color:var(--good);font-size:17px;display:flex;gap:8px;align-items:center"><span style="width:20px">${I.check}</span>Word saved for review</b><button class="mini" data-act="undo">Undo</button></div><div style="margin-top:6px">${S.word.whole?`<span class="muted">Whole sentence</span>`:''}${gl(S.word)}</div><div class="muted sm" style="margin-top:6px">${HELP[D()][0].sh} checks it at handover.</div></div>`:
+  `<button class="card rowlink" data-go="saveword"><span style="width:22px;color:var(--orange);flex:none">${I.heart}</span><span style="flex:1;text-align:left"><b>Did <span class="zh">${p.call}</span> say a word differently?</b><span class="muted sm" style="display:block">Save it for your team to check</span></span><span class="muted" style="width:20px">${I.chev}</span></button>`;
+ return `${bar('Result','Teach-back · Amlodipine 5 mg')}
+<div class="stack">
+ ${v==='good'?`<div class="res good"><h3>✓ Got it all: morning, after food, 1 pill</h3><p>Matches the prescription. Filled in for you: <b>Amlodipine 5 mg · teach-back passed · 10:42</b></p><button class="btn sec" style="margin-top:12px;height:50px;font-size:16.5px" data-act="family">Leave a note</button></div>`:
+ v==='part'?`<div class="res part"><h3>Partly: just one thing to fix.</h3><p>${okk.length?cap(okk.map(k=>NAMES[k]).join(' and '))+(okk.length>1?' are':' is')+' right. ':''}${w.length?`${p.He} pointed to <b>${w.map(k=>NAMES[k]).join(', ')}</b>. `:''}Re-explain only that part:</p>
+   <div class="inner"><div class="prow2"><div>${phrase(fix,'sm')}${gl(fix,' · point at the bowl')}</div>${hear(fix.zh,false)}</div></div>
+   ${S.retry?'':`<button class="btn pri" style="margin-top:12px;height:50px;font-size:16.5px" data-act="again">Ask ${p.him} to point again · try 2 of 2</button>`}</div>`:
+ `<div class="res bad"><h3>Not yet${w.length?`: ${p.he} pointed to ${w.map(k=>NAMES[k]).join(' and ')}`:''}</h3><p>The basics didn't land. That isn't your fault or ${p.hers}. Try once more, slowly, with the pictures. If it still doesn't land, get a speaker.</p>
+   <div class="inner" style="font-size:14.5px;line-height:1.45"><b style="color:var(--bad)">Saved automatically:</b> Not understood · 10:42. Shows on handover and holds the first dose until someone confirms ${p.he} understands.</div></div>`}
+ ${saved}
+ ${v==='good'?`<button class="btn pri" data-go="done">Log &amp; done</button>`:v==='bad'?`<div class="two"><button class="btn sec" data-act="totablet">Try again with pictures</button><button class="btn warm" data-go="help">Get a speaker</button></div>`:`<button class="btn ${S.retry?'pri':'sec'}" data-go="review">Log &amp; flag for handover</button>`}
+</div>`};
+
+/* ---- save a word: its own page ---- */
+V.saveword=()=>{const p=P();const opts=[ph('p1'),ph('p2'),ph('p3'),{zh:p.call,en:`what we call ${p.him}`,d:D()}];
+ return `${bar('Save a word',`${p.short} said it differently`)}
+<div class="stack">
+ <h2 style="font-size:20px;margin:0">Which word did <span class="zh">${p.call}</span> say differently?</h2>
+ <div class="muted">Pick the part you heard. Your team's ${p.d} speaker checks it at handover.</div>
+ <div class="wp" style="margin-top:0">${opts.map((o,i)=>`<button class="choice" data-word="${i}"><span class="zh">${o.zh}</span><span>${o.en}</span></button>`).join('')}<button class="choice whole" data-word="whole"><span style="font-weight:700;color:var(--ink)">Not sure · save the whole sentence</span></button></div>
+ <button class="btn sec" data-act="rec">${ic('mic',20)} Hold to record ${p.him} (only if ${p.he} agrees)</button>
+</div>`};
+
+/* ---- get help: coverage at the top, people below ---- */
+const COV={Cantonese:'SN Wong',Hokkien:'You + 2 others',Teochew:'On call only'};
+V.help=()=>{const p=P(),d=S.helpD||D(),hs=HELP[d];
+ return `${bar('Get help',`For ${p.short} · ${loc(p)}`)}
+<div class="stack">
+ <div class="covsel">${['Cantonese','Hokkien','Teochew'].map(x=>`<button data-help="${x}" aria-pressed="${d===x}"><b>${x}</b><span>${COV[x]}</span></button>`).join('')}</div>
+ <div class="avail"><b style="color:var(--ink);font-weight:600">On shift</b><span><i class="dot on"></i>Available</span><span><i class="dot off"></i>Busy</span></div>
+ ${hs.map((h,i)=>i===0?`<div class="card hl"><div class="person">${statusAv(h)}<div><h3>${h.n}</h3><div class="r">${h.r}</div><div class="${h.on?'ok-t':'warn-t'}">${h.s}</div></div></div>
+  <div style="display:flex;gap:10px;margin-top:14px"><button class="btn pri" style="flex:1;height:50px;font-size:17px" data-act="request" data-d="${d}">Request ${S.loc?'in the room':'at the bedside'}</button><button class="ic" style="width:50px;height:50px;border-radius:14px" aria-label="Call ${h.n}">${I.phone}</button></div>
+  <button class="btn sec" style="margin-top:10px;height:50px;font-size:17px" data-act="coach">Ask for 2 min of coaching first</button></div>`:
+  `<div class="card"><div class="person">${statusAv(h,'c')}<div><h3>${h.n}</h3><div class="r">${h.r}</div><div class="${h.on?'ok-t':'warn-t'}">${h.s}</div></div></div></div>`).join('')}
+ <button class="card rowlink" data-pb="${d}"><span style="width:22px;color:var(--brown);flex:none">${I.book}</span><span style="flex:1;text-align:left"><b>${d} tips from your team</b><span class="muted sm" style="display:block">In the team phrasebook</span></span><span class="muted" style="width:20px">${I.chev}</span></button>
+</div>`};
+
+/* ---- phrasebook: team tips live here now ---- */
+V.phrasebook=()=>{const q=S.q['q-pb']||'';const d=S.pbF;
+ const list=allPhrases().filter(p=>(d==='All'||p.d===d)&&match(q,phText(p)));
+ const cats=['Greetings','Pain and symptoms','Medicine','Checking understanding','Getting help'];
+ const tips=d!=='All'&&!q.trim()?`<div class="tipbox" style="margin-top:14px"><p class="eyebrow" style="color:var(--brown)">${d} tips from your team</p><div class="stack" style="gap:8px;margin-top:10px">${TIPS[d].map(([a,b])=>`<div class="tipcard">${a}<small>${b}</small></div>`).join('')}</div></div>`:'';
+ return `<div class="topgap"></div><h1 style="font-size:28px;margin:8px 0 2px">Team phrasebook</h1><div class="muted" style="font-size:15px">Checked by the dialect speakers in your team</div>
+<div style="margin-top:14px">${searchBox('q-pb','Search a word or phrase')}</div>
+<div class="fchips" style="margin-top:12px">${['All','Cantonese','Hokkien','Teochew'].map(x=>`<button class="fchip" data-pbf="${x}" aria-pressed="${d===x}">${x}</button>`).join('')}</div>
+${tips}
+${d!=='All'?`<div class="lgline" style="margin-top:12px"><span>${list.length} phrases</span><button class="pill no-lap" data-tones="${d}" style="height:36px">${ic('info',16)} ${d} tones</button></div>`:`<div class="muted sm" style="margin-top:12px">${list.length} phrases</div>`}
+${list.length?cats.map(c=>{const xs=list.filter(p=>p.cat===c);return xs.length?`<div class="res-h">${c.toUpperCase()}</div><div class="stack split2">${xs.map(p=>phCard(p,' ')).join('')}</div>`:''}).join(''):`<div class="card empty" style="margin-top:16px"><b style="color:var(--ink)">No phrases match "${esc(q)}"</b><div style="margin-top:6px">Try English, Chinese, or how it sounds${d!=='All'?', or switch to All':''}.</div></div>`}`};
+
+function ctx(){const s=S.screen,p=P();
+ if(['patient','about','symptoms','sym2','sym3','practise','bedside','say2','tablet','check','result','saveword','coming','show','help'].includes(s))return `<div class="card" style="margin-bottom:16px"><div class="person"><div class="bed" style="width:48px;height:48px;font-size:19px">${p.bed}</div><div><h3 style="font-size:17px">${p.name}, ${p.age}</h3><div class="r">${p.chips.join(' · ')}</div></div></div><div class="nnote" style="margin-top:12px">Call ${p.him} <span class="zh">${p.call}</span> (${p.callR}).</div></div><div class="card">${toneHead(D())}${toneRows(D())}<div class="nnote" style="margin-top:10px">${TNOTE[D()]}</div></div>`;
+ const d=s==='notes'?S.notesF:s==='phrasebook'?S.pbF:null;
+ if(d&&d!=='All')return `<div class="card">${toneHead(d)}${toneRows(d)}<div class="nnote" style="margin-top:10px">${TNOTE[d]}</div></div>`;
+ return ''}
+
+I.tablet=sv('<rect x="4" y="2" width="16" height="20" rx="2.5"/><path d="M11 18h2"/>');
+
+app.addEventListener('click',e=>{const b=e.target.closest('button,[data-act]');if(!b)return;const d=b.dataset;
+ if(d.mk){S.mark=d.mk;go('result');return}
+ if(d.word&&S.screen==='saveword'){back();return}
+ const a=d.act;
+ if(a==='again'){S.picks={};S.mark=null;S.retry=1;S.hist=S.hist.filter(x=>x!=='check');S.screen='check';render(true)}
+ if(a==='savesym3'){toast(`Symptoms saved to ${P().his} notes`);const i=S.hist.lastIndexOf('symptoms');S.screen=S.hist[i-1]||'patient';S.hist=S.hist.slice(0,Math.max(0,i-1));render(true)}
+ if(a==='totablet'){S.kioskOn=true;go('tablet')}
+});
+/* deep links like #say2-tan or #kiosk-goh */
+(()=>{const h=(location.hash||'').slice(1).split('-');if(V[h[0]])S.screen=h[0];if(PT[h[1]])S.pid=h[1];if(h[2]==='on')S.kioskOn=true;S.helpD=D();render(true)})();
+
+</script>
+<script>
+/* ===== Round 4: per-patient progress, resume, multi-select body parts ===== */
+S.prog={};S.body=[];S.bodyOther='';
+const FLOWSCR=['symptoms','sym2','sym3','practise','bedside','say2','tablet','show','check','result','saveword','help','coming'];
+const STEPNAME={symptoms:'Ask about symptoms · where',sym2:'Ask about symptoms · how much',sym3:'Ask about symptoms · since when',practise:'Practise first',bedside:"Say it · what it's for",say2:'Say it · when to take it',tablet:'Bedside tablet',show:'Full screen pictures',check:'Check understanding',result:'Teach-back result',saveword:'Save a word',help:'Get help',coming:'Speaker on the way'};
+const pg=()=>S.prog[S.pid]||(S.prog[S.pid]={});
+function track(){const g=pg(),s=S.screen;
+ if(FLOWSCR.includes(s)){g.last=s;g.hist=[...S.hist]}
+ if(s==='say2')g.explained=true;
+ if(s==='result'&&(S.mark||verdict())==='good')g.understood=true;
+ if(s==='done'){g.understood=true;g.explained=true;g.last=null}}
+const _go3=go;
+go=function(s,push=true){_go3(s,push);track()};
+
+V.home=()=>{const q=S.q['q-home']||'';const me=S.me;
+ const pts=[...Object.values(PT).map(p=>({b:p.bed,n:`${p.name}, ${p.age}`,d:p.d,todo:p.todo,go:p.id}))].sort((a,b)=>a.b.localeCompare(b.b));
+ const status=x=>{const g=S.prog[x.go]||{};return g.last?`<div class="todo"><b>In progress</b> · ${STEPNAME[g.last]}</div>`:g.understood?`<div class="todo" style="color:var(--good)">✓ Done for now</div>`:`<div class="todo">To do: ${x.todo}</div>`};
+ const row=x=>`<button class="card ${x.go&&x.go===S.picked&&!q?'hl':''}" ${x.go?`data-pt="${x.go}"`:'data-act="tamil"'}><div class="prow"><div class="bed">${x.b}</div><div style="flex:1;min-width:0"><h3>${x.n}</h3><span class="tag ${x.d==='Tamil'?'ta':''}">${x.d}</span>${x.go?status(x):`<div class="todo">To do: ${x.todo}</div>`}</div><span class="muted" style="width:22px">${I.chev}</span></div></button>`;
+ const head=`<div class="hero"><div class="topgap"></div>
+ <div class="who"><div><small>${esc(me.wards[0]||'').toUpperCase()} · MORNING SHIFT</small><h1>Good morning, ${esc(me.name)}</h1><p>You speak: English · Mandarin · <b>Hokkien</b></p></div><button class="av" data-tab="me" aria-label="Me">HM</button></div>
+ ${searchBox('q-home','Search a patient, word or phrase')}</div>`;
+ if(q.trim()){const pr=pts.filter(x=>match(q,x.b,x.n,x.d,x.todo));const phs=allPhrases().filter(p=>match(q,phText(p),p.d));const ns=NOTES.filter(n=>match(q,phText(n.p),n.src,strip(n.note||'')));
+  return head+`<div class="res-h">PATIENTS · ${pr.length}</div><div class="plist">${pr.map(row).join('')||'<div class="empty">No patients match.</div>'}</div>
+  <div class="res-h">PHRASES · ${phs.length}</div><div class="stack">${phs.slice(0,8).map(p=>phCard(p)).join('')||'<div class="empty">No phrases match. Try English, Chinese or how it sounds.</div>'}</div>
+  <div class="res-h">MY NOTES · ${ns.length}</div><div class="stack">${ns.map(ncard).join('')||'<div class="empty">No notes match.</div>'}</div>`}
+ return head+`<div style="margin-top:16px"><button class="remind" data-pt="lim" data-then="practise"><span style="color:var(--orange)">${ic('mic',24)}</span><span style="text-align:left"><b>2 phrases to practise before 10:30</b><span class="muted">For Mdm Lim's new BP pill · 3 min</span></span></button></div>
+<div class="sechead"><h2>My patients</h2><span class="muted">${pts.length} assigned</span></div>
+<div class="plist">${pts.map(row).join('')}</div>`};
+
+V.patient=()=>{const p=P(),g=pg();
+ const tile=(go,icon,label,warm)=>`<button class="tile ${warm?'warm':''}" data-go="${go}">${p.todoGo===go&&!g.understood?'<span class="todob">TO DO</span>':''}<span style="color:var(--${warm?'brown':'teal'});width:26px">${I[icon]}</span><b>${label}</b></button>`;
+ const chip=(on,l)=>`<span class="${on?'done':''}">${on?I.check:''}${l}</span>`;
+ return `
+<div class="phero"><div class="topgap"></div><button class="back" data-act="back" aria-label="Back" style="color:#fff">${I.back}</button>
+ <div style="font-size:13px;letter-spacing:1.4px;font-weight:700;opacity:.85;margin-top:14px">${loc(p).toUpperCase()} · ${esc(S.me.wards[0]).toUpperCase()}</div><h1>${p.name}, ${p.age}</h1>
+ <div class="chips">${p.chips.map((c,i)=>`<span class="chip ${i?'':'k'}">${c}</span>`).join('')}</div></div>
+<div class="stack">
+ ${g.last?`<button class="resume" data-act="resume"><span style="width:24px;flex:none">${I.play}</span><span style="flex:1"><b>Continue where you left off</b><span class="s">${STEPNAME[g.last]}</span></span><span style="width:20px">${I.chev}</span></button>`:''}
+ ${(g.symptoms||g.explained||g.understood)?`<div class="card" style="padding:12px 14px"><p class="eyebrow" style="margin-bottom:8px">Today with ${p.him}</p><div class="prog">${chip(g.symptoms,'Symptoms')}${chip(g.explained,'Medicine explained')}${chip(g.understood,'Understood')}</div></div>`:''}
+ <div class="card hl"><p class="eyebrow or">Greet ${p.him} yourself</p><div style="margin-top:10px">${phrase(p.greet)}</div>${gl(p.greet)}
+  <div class="two" style="margin-top:14px">${hear(p.greet.zh)}<button class="pill" data-go="practise">${ic('mic')} Practise</button></div>${toneLink(p.d)}</div>
+ <button class="card aboutc" data-go="about"><div class="lgline"><p class="eyebrow" style="color:var(--brown)">About ${p.him}</p><span class="muted" style="width:20px">${I.chev}</span></div><p class="one">${firstSentence(p.notes)}</p></button>
+ <h2 style="font-size:21px;margin:10px 0 0">What do you need to say?</h2>
+ <div class="tiles">${tile('symptoms','heart','Ask about symptoms')}${tile('practise','pill','Explain treatment')}${tile('help','person','Explain diagnosis',1)}${tile('check','check',`Check ${p.he} understood`)}</div>
+ <button class="btn sec" data-go="help">${ic('person',24)} Get a ${p.d} speaker</button>
+</div>`};
+
+V.symptoms=()=>{const p=P();const bs=[].concat(S.body||[]);return `${bar('Ask about symptoms',`${p.short} · ${loc(p)}`)}
+${steps(1,3,'Where')}
+<div class="stack">
+ <div class="card hl">${phrase(ph('where'))}${gl(ph('where'))}<div style="margin-top:12px">${hear(ph('where').zh)}</div>${toneLink()}</div>
+ <div class="lgline"><p class="eyebrow">${p.He} taps where it hurts</p><span class="muted sm">Pick all that apply</span></div>
+ <div><div class="grid3 body">${BODY.map(([k,z,e])=>`<button class="choice" data-body="${k}" aria-pressed="${bs.includes(k)}"><span class="zh">${z}</span><span>${e}</span></button>`).join('')}</div>
+ ${bs.includes('other')?`<label class="fl" for="sym-other">WHERE EXACTLY?</label><input id="sym-other" class="otherin" style="margin-top:0" placeholder="e.g. left knee, behind the ear" value="${esc(S.bodyOther||'')}">`:''}</div>
+ <button class="btn pri" data-go="sym2">Next: how much</button>
+</div>`};
+
+/* capture phase: runs before the older handlers */
+app.addEventListener('click',e=>{const b=e.target.closest('button,[data-act]');if(!b)return;const d=b.dataset;
+ if(b.classList.contains('pill')){app.querySelectorAll('.pill.on').forEach(x=>x.classList.remove('on'));b.classList.add('on')}
+ if(d.body){e.stopPropagation();const bs=[].concat(S.body||[]);const i=bs.indexOf(d.body);if(i>=0)bs.splice(i,1);else bs.push(d.body);S.body=bs;render();if(d.body==='other'&&bs.includes('other')){const el=document.getElementById('sym-other');if(el)el.focus()}return}
+ if(d.act==='savesym3'){pg().symptoms=true;if(pg().last&&pg().last.startsWith('sym'))pg().last=null}
+ if(d.act==='topatient'){e.stopPropagation();S.hist=['home'];S.screen='patient';S.sheet=null;render(true);return}
+ if(d.act==='resume'){e.stopPropagation();const g=pg();S.hist=[...(g.hist||['home','patient'])];S.screen=g.last;render(true);return}
+ if(d.act==='home'||d.tab){track()}
+},true);
+app.addEventListener('input',e=>{if(e.target.id==='sym-other'){S.bodyOther=e.target.value}});
+render(true);
+
+</script>
+<style>
+/* round 5: one quiet colour per dialect. Soft tint + dark text on labels, a small dot on filter buttons.
+   The dialect name is always written, so colour is a helper, never the only cue. */
+:root{
+ --d-can-bg:#f6dfc0;--d-can-fg:#5a3208;--d-can-dot:#c98a2b;
+ --d-hok-bg:#d8ebdc;--d-hok-fg:#1e4f2f;--d-hok-dot:#4e9566;
+ --d-teo-bg:#dce5f3;--d-teo-fg:#223e69;--d-teo-dot:#5878b5;
+ --d-tam-bg:#ebe4f6;--d-tam-fg:#4b3378;--d-tam-dot:#8a6cc0;
+}
+[data-dial="can"]{--dbg:var(--d-can-bg);--dfg:var(--d-can-fg);--ddot:var(--d-can-dot)}
+[data-dial="hok"]{--dbg:var(--d-hok-bg);--dfg:var(--d-hok-fg);--ddot:var(--d-hok-dot)}
+[data-dial="teo"]{--dbg:var(--d-teo-bg);--dfg:var(--d-teo-fg);--ddot:var(--d-teo-dot)}
+[data-dial="tam"]{--dbg:var(--d-tam-bg);--dfg:var(--d-tam-fg);--ddot:var(--d-tam-dot)}
+.tag[data-dial],.dtag[data-dial],.chip[data-dial]{background:var(--dbg);color:var(--dfg)}
+.fchip[data-dial],.covsel button[data-dial] b{display:inline-flex;align-items:center;gap:7px}
+.fchip[data-dial]::before,.covsel button[data-dial] b::before{content:"";width:9px;height:9px;border-radius:5px;background:var(--ddot);flex:none}
+.fchip[data-dial][aria-pressed="true"]::before,.covsel button[data-dial][aria-pressed="true"] b::before,.fchip[data-dial][style*="--teal"]::before{box-shadow:0 0 0 2px #fff}
+</style>
+<script>
+/* round 5: tag every dialect label with its dialect so the CSS above can colour it */
+(()=>{const MAP={Cantonese:'can',Hokkien:'hok',Teochew:'teo',Tamil:'tam'};
+ const SEL='.tag,.dtag,.chip,.fchip,.covsel button';
+ const name=el=>{const t=(el.matches('.covsel button')?(el.querySelector('b')||el).textContent:el.textContent).trim().replace(/^Speaks\s+/,'');return MAP[t]};
+ function paint(root){root.querySelectorAll(SEL).forEach(el=>{const k=name(el);if(k){if(el.dataset.dial!==k)el.dataset.dial=k}else if(el.dataset.dial)delete el.dataset.dial})}
+ const app=document.getElementById('app');new MutationObserver(()=>paint(app)).observe(app,{childList:true,subtree:true});paint(app);})();
+</script>
+<style>
+/* round 5b: shift coverage panel back on the home screen, in the dialect colours */
+.covcard{padding:14px 14px 12px}
+.covcard .lgline{font-size:16px;color:var(--ink);font-weight:700}
+.cov5{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.cov5 button{background:var(--dbg);border-radius:12px;padding:9px 11px;text-align:left;display:flex;flex-direction:column;gap:2px;min-width:0}
+.cov5 b{display:flex;align-items:center;gap:6px;color:var(--dfg);font-size:15px}
+.cov5 b::before{content:"";width:8px;height:8px;border-radius:4px;background:var(--ddot);flex:none}
+.cov5 span{font-size:13px;color:var(--dfg);opacity:.85}
+.cov5 span.warn{color:var(--bad);opacity:1;font-weight:600}
+</style>
+<script>
+(()=>{const _home=V.home;
+ V.home=()=>{const h=_home();if((S.q['q-home']||'').trim())return h;
+  const tile=(d,k,who,warn)=>`<button data-help="${d}" data-dial="${k}" aria-label="${d}: ${who}"><b>${d}</b><span class="${warn?'warn':''}">${who}</span></button>`;
+  const card=`<div class="card covcard"><div class="lgline"><span>Dialect coverage this shift</span><button class="linkbtn" data-go="team">See team</button></div>
+   <div class="cov5">${tile('Hokkien','hok','You + 2 others')}${tile('Cantonese','can','SN Wong')}${tile('Teochew','teo','On call only',1)}</div></div>`;
+  return h.replace('<div style="margin-top:16px"><button class="remind"',`<div style="margin-top:16px">${card}</div><div style="margin-top:12px"><button class="remind"`)};
+ render(true)})();
+</script>
+<style>
+/* round 5c: team overview */
+.seg2{display:grid;grid-template-columns:1fr 1fr;background:#e7eceb;border-radius:12px;padding:3px;gap:3px}
+.seg2 button{height:40px;border-radius:9px;font-size:15px;font-weight:600;color:var(--muted)}
+.seg2 button[aria-pressed="true"]{background:#fff;color:var(--teal);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.tgroup{display:flex;flex-direction:column;gap:8px}
+.tgroup h3{margin:6px 2px 0;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:7px}
+.tgroup h3 .n{font-weight:600;letter-spacing:0;text-transform:none}
+.mrow{display:flex;gap:12px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 14px;width:100%;text-align:left}
+.mrow .av{width:46px;height:46px;font-size:16px;flex:none}
+.mrow .av.c{background:var(--teal-soft);color:var(--teal-2)}
+.mrow .who2{flex:1;min-width:0}
+.mrow h4{margin:0;font-size:16.5px}
+.mrow .r{font-size:13.5px;color:var(--muted);margin-top:1px}
+.mrow .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.mrow .tag{height:22px;font-size:12px;padding:0 8px}
+.mrow .when{font-size:13px;font-weight:600;text-align:right;flex:none;max-width:96px}
+.st.call,.dot.call{background:#d39a2c}.st.offd,.dot.offd{background:#a9b4b2}
+.when.free{color:var(--good)}.when.soon{color:var(--good)}.when.call{color:#8a5a00}.when.busy{color:var(--bad)}.when.offd{color:var(--faint)}
+.dgrid{display:grid;gap:10px}
+@container (min-width:700px){.dgrid{grid-template-columns:repeat(3,1fr)}}
+.dcard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;text-align:left;display:flex;flex-direction:column;gap:10px;width:100%}
+.dcard .top{display:flex;justify-content:space-between;align-items:center}
+.dcard .top .tag{height:28px;font-size:14px;padding:0 12px}
+.dcard .sum{font-size:14.5px;line-height:1.4}
+.dcard .sum b{font-weight:700}
+.dcard .avs{display:flex;gap:6px}
+.dcard .avs .av{width:36px;height:36px;font-size:13px}
+.dcard .avs .st{width:12px;height:12px;border-width:2px}
+.dcard .go{font-size:14px;font-weight:700;color:var(--teal);display:flex;align-items:center;gap:4px}
+.dcard .go svg{width:16px;height:16px}
+</style>
+<script>
+/* round 5c: more patients (Mr Ramasamy removed), and a team overview behind "See team" */
+(()=>{
+ const G={
+  canF:PT.lim.greet, hokM:PT.tan.greet, teoF:PT.goh.greet,
+  canM:{s:[['ah',3],['baak,',3],['jo',2],['sun!',4,1]],zh:'阿伯，早晨！',en:'Good morning, Uncle!',d:'Cantonese'},
+  hokF:{s:[['a',1],['ma,',2],['za!',2,1]],zh:'阿嬤，早！',en:'Good morning, Grandma!',d:'Hokkien'},
+  teoM:{s:[['a',1],['beh,',4],['za!',2,1]],zh:'阿伯，早！',en:'Good morning, Uncle!',d:'Teochew'}};
+ const she={he:'she',him:'her',his:'her',hers:'hers',He:'She'},he={he:'he',him:'him',his:'his',hers:'his',He:'He'};
+ const add=(o)=>{PT[o.id]=o};
+ add({id:'ng',bed:'02',name:'Mdm Ng Bee Choo',short:'Mdm Ng',age:84,d:'Hokkien',...she,todo:'ask about her dizziness',todoGo:'symptoms',call:'阿嬤',callR:'a ma',greet:G.hokF,
+  chips:['Speaks Hokkien','No Mandarin','Does not read'],notes:'Likes to be called 阿嬤 (a ma). Wears hearing aids, so face her and speak slowly. Her son visits after work.',by:'SN Ong Siew Ling',corr:'No corrections yet',family:'son',visit:'7 pm'});
+ add({id:'lth',bed:'06',name:'Mr Lim Teck Huat',short:'Mr Lim',age:81,d:'Teochew',...he,todo:'explain new BP medication',todoGo:'practise',call:'阿伯',callR:'a beh',greet:G.teoM,
+  chips:['Speaks Teochew','Some Hokkien','Reads Chinese'],notes:'Former hawker. Chatty in the morning, tired after lunch, so explain medicines early.',by:'SN Chua Lay Hoon',corr:'No corrections yet',family:'daughter',visit:'6 pm'});
+ add({id:'chan',bed:'09',name:'Mr Chan Wai Keung',short:'Mr Chan',age:78,d:'Cantonese',...he,todo:'ask about his chest discomfort',todoGo:'symptoms',call:'阿伯',callR:'ah baak',greet:G.canM,
+  chips:['Speaks Cantonese','Some English','Reads Chinese'],notes:'Says 琴日 (kam yat) for yesterday. Gets impatient with long explanations, so keep it short and show pictures.',by:'SN Wong Mei Ling',corr:'1 correction from Mr Chan saved',family:'wife',visit:'5 pm'});
+ add({id:'koh',bed:'12',name:'Mr Koh Ah Seng',short:'Mr Koh',age:76,d:'Hokkien',...he,todo:'check he understood his BP pill',todoGo:'check',call:'阿伯',callR:'ah peh',greet:G.hokM,
+  chips:['Speaks Hokkien','Some Mandarin','Reads Chinese'],notes:'Retired taxi driver. Answers quickly to look sure, so always ask him to point and show you.',by:'SN Ong Siew Ling',corr:'No corrections yet',family:'grandson',visit:'7 pm'});
+ add({id:'tay',bed:'14',name:'Mdm Tay Gek Hong',short:'Mdm Tay',age:83,d:'Teochew',...she,todo:'ask about her back pain',todoGo:'symptoms',call:'阿嬤',callR:'a ma',greet:G.teoF,
+  chips:['Speaks Teochew','No Mandarin','Does not read'],notes:'Shy at first. Warms up if you greet her in Teochew before anything else.',by:'SN Chua Lay Hoon',corr:'No corrections yet',family:'daughter-in-law',visit:'4 pm'});
+ add({id:'leong',bed:'15',name:'Mdm Leong Yuet Ying',short:'Mdm Leong',age:88,d:'Cantonese',...she,todo:'check she understood her BP pill',todoGo:'check',call:'婆婆',callR:'por-por',greet:G.canF,
+  chips:['Speaks Cantonese','Some Hokkien','Does not read'],notes:'Hard of hearing on the left. Likes her daughter to hear the plan too, so leave an English note.',by:'SN Wong Mei Ling',corr:'No corrections yet',family:'daughter',visit:'6 pm'});
+ /* phrasebook: one copy of each greeting, even when several patients share it */
+ const _all=allPhrases;allPhrases=function(){const seen=new Set();return _all().filter(p=>{const k=p.d+'|'+p.zh;if(seen.has(k))return false;seen.add(k);return true})};
+
+ /* team on shift */
+ const TEAM=[
+  {i:'OS',n:'SN Ong Siew Ling',r:'Ward 7B · Staff nurse',d:['Hokkien'],st:'free',w:'Free now'},
+  
+  {i:'WM',n:'SN Wong Mei Ling',r:'Ward 7B · Senior staff nurse',d:['Cantonese'],st:'soon',w:'Free in ~5 min'},
+  {i:'DL',n:'Dr Leung Wai Kit',r:'Medical team',d:['Cantonese'],st:'call',w:'On call'},
+  {i:'KJ',n:'Dr Koh Jun Wei',r:'Medical team',d:['Hokkien'],st:'call',w:'On call'},
+  {i:'CL',n:'SN Chua Lay Hoon',r:'Ward 6A · Senior staff nurse',d:['Teochew'],st:'call',w:'On call · ~15 min'},
+  {i:'NB',n:'Ng Bee Lian',r:'Volunteer interpreter',d:['Teochew'],st:'call',w:'On request · 9 am to 5 pm'},
+  {i:'CK',n:'Chan Kwok Leung',r:'Ward 7A · Patient care assistant',d:['Cantonese'],st:'busy',w:'Busy until 11:00'},
+  {i:'LK',n:'Lee Ah Kow',r:'Ward 7B · Patient care assistant',d:['Hokkien'],st:'busy',w:'Busy until 11:30'},
+  {i:'YH',n:'Dr Yeo Hock Seng',r:'Medical team',d:['Teochew'],st:'offd',w:'Off today'}];
+ const GROUPS=[['free','Free now','on'],['soon','Free soon','on'],['call','On call','call'],['busy','Busy','off'],['offd','Not in today','offd']];
+ const dotc={free:'on',soon:'on',call:'call',busy:'off',offd:'offd'};
+ const av=(m,cls='')=>`<div class="av ${m.n.startsWith('Dr')?'c':''} ${cls}">${m.i}<span class="st ${dotc[m.st]}"></span></div>`;
+ const mrow=m=>`<button class="mrow" data-help="${m.d[0]}">${av(m)}<div class="who2"><h4>${m.n}</h4><div class="r">${m.r}</div><div class="tags">${m.d.map(x=>`<span class="tag">${x}</span>`).join('')}</div></div><span class="when ${m.st}">${m.w}</span></button>`;
+ S.teamView=S.teamView||'avail';
+ V.team=()=>{const v=S.teamView;
+  let body;
+  if(v==='avail'){
+   body=GROUPS.map(([k,l,c])=>{const ms=TEAM.filter(m=>m.st===k);return ms.length?`<div class="tgroup"><h3><i class="dot ${c}"></i>${l} <span class="n">· ${ms.length}</span></h3>${ms.map(mrow).join('')}</div>`:''}).join('');
+  }else{
+   const sum=d=>{const ms=TEAM.filter(m=>m.d.includes(d));const c=k=>ms.filter(m=>m.st===k).length;const free=c('free')+c('soon');
+    const extra=d===S.me.dialects.find(x=>['Cantonese','Hokkien','Teochew'].includes(x))?' You speak it too.':'';
+    return {ms,line:free?`<b>${free} free now or soon</b> · ${c('call')} on call · ${c('busy')} busy.${extra}`:`<b style="color:var(--bad)">No one on the ward</b> · ${c('call')} on call.${extra}`}};
+   body=`<div class="dgrid">${['Cantonese','Hokkien','Teochew'].map(d=>{const s=sum(d);return `<button class="dcard" data-help="${d}"><div class="top"><span class="tag">${d}</span><span class="muted sm">${s.ms.length} people</span></div><div class="sum">${s.line}</div><div class="avs">${s.ms.map(m=>av(m)).join('')}</div><span class="go">See ${d} speakers ${I.chev}</span></button>`}).join('')}</div>`;
+  }
+  return `${bar('Team on shift','Who speaks which dialect · Ward 7B and on call')}
+<div class="stack">
+ <div class="seg2" role="group" aria-label="View"><button data-teamv="avail" aria-pressed="${v==='avail'}">By availability</button><button data-teamv="dial" aria-pressed="${v==='dial'}">By dialect</button></div>
+ ${body}
+</div>`};
+ app.addEventListener('click',e=>{const b=e.target.closest('[data-teamv]');if(!b)return;e.stopPropagation();S.teamView=b.dataset.teamv;render()},true);
+ render(true);
+})();
+</script>
