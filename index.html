@@ -1297,5 +1297,27 @@ render(true);
 :where(button,a)>svg:not([width]){flex:none}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 </style>
+<script>
+/* round 5e: stay on the same screen after a refresh. Kept in this browser only; a link with #screen-patient still opens that screen instead. */
+(()=>{const KEY='dialect-companion-state-v1';
+ if(location.hash)return;
+ const store={get(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}},set(v){try{localStorage.setItem(KEY,JSON.stringify(v))}catch(e){}}};
+ const SKIP=new Set(['sheet','langOpen']);
+ let scrollY=0,timer=null;
+ function save(){const o={};for(const k in S){if(!SKIP.has(k)&&typeof S[k]!=='function')o[k]=S[k]}
+  store.set({S:o,notes:typeof NOTES!=='undefined'?NOTES:null,scroll:scrollY})}
+ const saved=store.get();
+ if(saved&&saved.S&&V[saved.S.screen]){
+  Object.assign(S,saved.S);S.sheet=null;
+  if(Array.isArray(saved.notes))try{NOTES=saved.notes}catch(e){}
+  if(!PT[S.pid])S.pid='lim';
+ }
+ const _render=render;
+ render=function(...a){_render.apply(this,a);clearTimeout(timer);timer=setTimeout(save,150)};
+ document.addEventListener('scroll',e=>{const sc=e.target;if(sc&&sc.id==='scroll'){scrollY=sc.scrollTop;clearTimeout(timer);timer=setTimeout(save,250)}},true);
+ render(true);
+ if(saved&&saved.scroll){const sc=document.getElementById('scroll');if(sc){sc.scrollTop=saved.scroll;scrollY=saved.scroll}}
+})();
+</script>
 
 </html>
