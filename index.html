@@ -1320,5 +1320,39 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  if(saved&&saved.scroll){const sc=document.getElementById('scroll');if(sc){sc.scrollTop=saved.scroll;scrollY=saved.scroll}}
 })();
 </script>
+<style>
+/* round 5f: a small body figure on each body-part button, with the area highlighted, for patients who can't read */
+.choice .bfig{width:40px;height:48px;display:block;margin:2px auto 4px;flex:none}
+.choice .bfig .b{fill:#c5cfcd}
+.choice .bfig .bl{stroke:#c5cfcd}
+.choice .bfig .on{fill:#c8612a}
+.choice .bfig .onl{stroke:#c8612a}
+.choice[aria-pressed="true"] .bfig .b{fill:#e8c3a8}.choice[aria-pressed="true"] .bfig .bl{stroke:#e8c3a8}
+</style>
+<script>
+(()=>{
+ const TORSO='M13 16h14a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H13a3 3 0 0 1-3-3V19a3 3 0 0 1 3-3z';
+ function fig(k){
+  const on=(p)=>p===k?'on':'b', onl=(p)=>p===k?'onl':'bl';
+  const region={chest:[16,6],upper:[22,5],lower:[27,6]}[k];
+  if(k==='other')return `<svg class="bfig" viewBox="0 0 40 48" aria-hidden="true"><circle cx="20" cy="22" r="13" class="on"/><text x="20" y="28.5" text-anchor="middle" font-size="18" font-weight="800" fill="#fff" font-family="Figtree,sans-serif">?</text></svg>`;
+  return `<svg class="bfig" viewBox="0 0 40 48" aria-hidden="true">
+   <defs><clipPath id="bt-${k}"><path d="${TORSO}"/></clipPath></defs>
+   <circle cx="20" cy="7.5" r="5.5" class="${on('head')}"/>
+   <rect x="17.5" y="12" width="5" height="4.5" rx="1.2" class="${on('throat')}"/>
+   <path d="${TORSO}" class="b"/>
+   ${region?`<rect x="8" y="${region[0]}" width="24" height="${region[1]}" class="on" clip-path="url(#bt-${k})"/>`:''}
+   ${k==='back'?`<line x1="20" y1="17.5" x2="20" y2="31.5" stroke-width="3" stroke-linecap="round" class="onl"/>`:''}
+   <line x1="11" y1="18.5" x2="5.5" y2="29" stroke-width="3.6" stroke-linecap="round" class="${onl('arm')}"/>
+   <line x1="29" y1="18.5" x2="34.5" y2="29" stroke-width="3.6" stroke-linecap="round" class="${onl('arm')}"/>
+   <circle cx="5" cy="31" r="2.3" class="${on('arm')}"/><circle cx="35" cy="31" r="2.3" class="${on('arm')}"/>
+   <line x1="16" y1="33" x2="15.5" y2="44" stroke-width="4" stroke-linecap="round" class="${onl('leg')}"/>
+   <line x1="24" y1="33" x2="24.5" y2="44" stroke-width="4" stroke-linecap="round" class="${onl('leg')}"/>
+   <rect x="11.5" y="43.5" width="6" height="3" rx="1.5" class="${on('leg')}"/><rect x="22.5" y="43.5" width="6" height="3" rx="1.5" class="${on('leg')}"/>
+  </svg>`}
+ function add(root){root.querySelectorAll('button[data-body]').forEach(b=>{if(!b.querySelector('.bfig'))b.insertAdjacentHTML('afterbegin',fig(b.dataset.body))})}
+ const app=document.getElementById('app');new MutationObserver(()=>add(app)).observe(app,{childList:true,subtree:true});add(app);
+})();
+</script>
 
 </html>
