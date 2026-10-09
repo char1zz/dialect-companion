@@ -1293,7 +1293,7 @@ render(true);
 .back svg{width:24px;height:24px;flex:none;display:block}
 .x svg{width:20px;height:20px;flex:none;display:block}
 .ic svg,.tab svg,.linkbtn svg,.mk3 svg{flex:none}
-:where(span)>svg:not([width]){display:block;width:100%;height:auto;flex:none}
+:where(span>svg:not([width])){display:block;width:100%;height:auto;flex:none}
 :where(button,a)>svg:not([width]){flex:none}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 </style>
@@ -1351,6 +1351,26 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
    <rect x="11.5" y="43.5" width="6" height="3" rx="1.5" class="${on('leg')}"/><rect x="22.5" y="43.5" width="6" height="3" rx="1.5" class="${on('leg')}"/>
   </svg>`}
  function add(root){root.querySelectorAll('button[data-body]').forEach(b=>{if(!b.querySelector('.bfig'))b.insertAdjacentHTML('afterbegin',fig(b.dataset.body))})}
+ const app=document.getElementById('app');new MutationObserver(()=>add(app)).observe(app,{childList:true,subtree:true});add(app);
+})();
+</script>
+<script>
+/* round 5g: calendar pictures on the "since when" buttons (today / yesterday / a few days) */
+(()=>{
+ const cell=(c,r,on)=>`<rect x="${9+c*8}" y="${19+r*8}" width="6" height="6" rx="1.5" class="${on?'on':'b'}"/>`;
+ function cal(k){
+  const hi={t:[[2,0]],y:[[1,0]],d:[[0,0],[1,0],[2,0]]}[k]||[];
+  const isOn=(c,r)=>hi.some(([a,b])=>a===c&&b===r);
+  let cells='';for(let r=0;r<2;r++)for(let c=0;c<3;c++)cells+=cell(c,r,isOn(c,r));
+  const arrow=k==='y'?`<path d="M30.5 14.5c-3-3.2-8.5-3.5-11.5-.5" fill="none" stroke-width="2.2" stroke-linecap="round" class="onl"/><path d="M18 11.2l.6 3.9 3.8-.9" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="onl"/>`:'';
+  const ring=k==='t'?`<rect x="23.5" y="17.5" width="9" height="9" rx="2.5" fill="none" stroke-width="1.6" class="onl"/>`:'';
+  return `<svg class="bfig" viewBox="0 0 40 48" aria-hidden="true">
+   <rect x="5" y="9" width="30" height="27" rx="4" fill="#fff" stroke-width="2.2" class="bl"/>
+   <rect x="5" y="9" width="30" height="7" rx="3" class="b"/>
+   <line x1="13" y1="6" x2="13" y2="12" stroke-width="2.4" stroke-linecap="round" class="bl"/><line x1="27" y1="6" x2="27" y2="12" stroke-width="2.4" stroke-linecap="round" class="bl"/>
+   ${cells}${ring}${arrow}
+  </svg>`}
+ function add(root){root.querySelectorAll('button[data-since]').forEach(b=>{if(!b.querySelector('.bfig'))b.insertAdjacentHTML('afterbegin',cal(b.dataset.since))})}
  const app=document.getElementById('app');new MutationObserver(()=>add(app)).observe(app,{childList:true,subtree:true});add(app);
 })();
 </script>
